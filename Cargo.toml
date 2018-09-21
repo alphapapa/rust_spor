@@ -1,0 +1,8 @@
+[package]
+name = "anchors"
+version = "0.1.0"
+authors = ["Austin Bingham <austin.bingham@gmail.com>"]
+
+[dependencies]
+matrix = "0.21.12"
+ordered-float = "1.0.1"
