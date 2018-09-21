@@ -1,5 +1,5 @@
-extern crate anchors;
+extern crate spor;
 
 fn main() {
-    anchors::build_score_matrix("asdf", "asdf");
+    spor::build_score_matrix("asdf", "asdf");
 }
