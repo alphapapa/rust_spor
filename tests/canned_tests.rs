@@ -4,10 +4,10 @@ extern crate spor;
 use spor::*;
 use spor::scoring::*;
 
+const INPUT1: &str = "GGTTGACTA";
+const INPUT2: &str = "TGTTACGG";
 #[test]  
 fn canned_score_matrix() {
-    let input1 = "GGTTGACTA";
-    let input2 = "TGTTACGG";
     let expected = ndarray::Array::from_shape_vec(
         (10, 9),
         vec![0, 0, 0, 0, 0, 0, 0, 0, 0,
