@@ -101,6 +101,7 @@ mod tests {
                         [0, 3, 1, 5, 4, 6, 11, 10, 8],
                         [0, 1, 0, 3, 2, 7, 9, 8, 7]];
         let mut exp_matrix: Conventional<f32> = Conventional::zero((input2.len() + 1, input1.len() + 1));
+        // TODO: Is there a way to take a window of exp_matrix and fill it with the contents of expected?
         for row in 0..expected.len() {
             for col in 0..expected[row].len() {
                 exp_matrix[(row, col)] = expected[row][col] as f32;
