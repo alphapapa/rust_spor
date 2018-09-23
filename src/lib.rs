@@ -47,11 +47,11 @@ pub fn build_score_matrix(a: &str, b: &str) -> (matrix::format::Conventional<f32
     let mut traceback_matrix: Conventional<u8> = Conventional::zero(
         (a.len() + 1, b.len() + 1));
 
-    for (row, row_char) in a.chars().enumerate().take(a.len() - 1) {
-        for (col, col_char) in b.chars().enumerate().take(b.len() - 1) {
+    for (row, a_char) in a.chars().enumerate() {
+        for (col, b_char) in b.chars().enumerate() {
             let row = row + 1;
             let col = col + 1;
-            let match_score = score_func(row_char, col_char) as f32;
+            let match_score = score_func(a_char, b_char) as f32;
 
             let mut scores = [
                 (score_matrix[(row - 1, col - 1)] + match_score,
@@ -70,12 +70,8 @@ pub fn build_score_matrix(a: &str, b: &str) -> (matrix::format::Conventional<f32
             println!("max_score: {:?}", max_score);
 
             let scores = scores.iter().take_while(|n| n.0 == max_score);
-            // scores = itertools.takewhile(
-            //     lambda x: x[0] == max_score,
-            //     scores)
 
             score_matrix[(row, col)] = max_score;
-            // score_matrix[row, col] = max_score
 
             for (_, direction) in scores {
                 traceback_matrix[(row, col)] = traceback_matrix[(row, col)] | direction_value(direction);
@@ -90,15 +86,29 @@ pub fn build_score_matrix(a: &str, b: &str) -> (matrix::format::Conventional<f32
 mod tests {
     use super::*;
 
-    #[test]
-    fn it_works() {
-        assert_eq!(2 + 2, 4);
-    }
-
-    #[test]
-    fn it_also_works() {
-        let l = build_score_matrix("asdf", "zxcv");
-        assert_eq!(l, 25);
+    #[test]  
+    fn canned_score_matrix() {
+        let input1 = "TGTTACGG";
+        let input2 = "GGTTGACTA";
+        let expected = [[0, 0, 0, 0, 0, 0, 0, 0, 0],
+                        [0, 0, 3, 1, 0, 0, 0, 3, 3],
+                        [0, 0, 3, 1, 0, 0, 0, 3, 6],
+                        [0, 3, 1, 6, 4, 2, 0, 1, 4],
+                        [0, 3, 1, 4, 9, 7, 5, 3, 2],
+                        [0, 1, 6, 4, 7, 6, 4, 8, 6],
+                        [0, 0, 4, 3, 5, 10, 8, 6, 5],
+                        [0, 0, 2, 1, 3, 8, 13, 11, 9],
+                        [0, 3, 1, 5, 4, 6, 11, 10, 8],
+                        [0, 1, 0, 3, 2, 7, 9, 8, 7]];
+        let mut exp_matrix: Conventional<f32> = Conventional::zero((input2.len() + 1, input1.len() + 1));
+        for row in 0..expected.len() {
+            for col in 0..expected[row].len() {
+                exp_matrix[(row, col)] = expected[row][col] as f32;
+            }
+        }
+        
+        let (score_matrix, _) = build_score_matrix(input2, input1);
+        assert_eq!(exp_matrix, score_matrix);
     }
 
 }
