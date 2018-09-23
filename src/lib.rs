@@ -1,7 +1,12 @@
 extern crate ndarray;
 extern crate ordered_float;
 
+pub mod scoring;
+
 // TODO: Consider using the seal library for smith-waterman. Once we learn how to do it ourselves...
+
+type ScoringFunction = Fn(char, char) -> f32;
+type GapPenaltyFunction = Fn(u32) -> f32;
 
 #[derive(Debug)]
 enum Direction {
@@ -20,12 +25,12 @@ fn direction_value(direction: &Direction) -> u8 {
     }
 }
 
-// TODO: These should just return an f32
-pub fn build_score_matrix(a: &str,
-                          b: &str,
-                          score_func: &Fn(char, char) -> f32,
-                          gap_penalty: &Fn(u32) -> f32) -> (ndarray::Array2<f32>,
-                                                            ndarray::Array2<u8>) {
+pub fn build_score_matrix(
+    a: &str,
+    b: &str,
+    score_func: &ScoringFunction,
+    gap_penalty: &GapPenaltyFunction) -> (ndarray::Array2<f32>,
+                                          ndarray::Array2<u8>) {
     let mut score_matrix = ndarray::Array2::<f32>::zeros(
         (a.len() + 1, b.len() + 1));
     let mut traceback_matrix = ndarray::Array2::<u8>::zeros(
@@ -63,5 +68,4 @@ pub fn build_score_matrix(a: &str,
 
     (score_matrix, traceback_matrix)
 }
-
 

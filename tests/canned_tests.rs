@@ -2,22 +2,7 @@ extern crate ndarray;
 extern crate spor;
 
 use spor::*;
-
-fn score_func(a: char, b: char) -> f32 {
-    if a == b {
-        3.0
-    } else {
-        -3.0
-    }
-}
-
-fn gap_penalty(gap: u32) -> f32 {
-    if gap == 1 {
-        2.0
-    } else {
-        (gap as f32) * gap_penalty(1)
-    }
-}
+use spor::scoring::*;
 
 #[test]  
 fn canned_score_matrix() {
