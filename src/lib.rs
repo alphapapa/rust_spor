@@ -2,17 +2,25 @@ extern crate ordered_float;
 extern crate matrix;
 
 use matrix::prelude::*;
-use std::fmt;
 
 // TODO: Consider writing our own matrix for the learning experience.
 // TODO: Consider using the seal library for smith-waterman. Once we learn how to do it ourselves...
 
 #[derive(Debug)]
 enum Direction {
+    NONE,
     DIAG,
     UP,
     LEFT,
-    NONE,
+}
+
+fn direction_value(direction: &Direction) -> u8 {
+    match direction {
+        Direction::NONE => 0x00,
+        Direction::DIAG => 0x01,
+        Direction::UP => 0x02,
+        Direction::LEFT => 0x04,
+    }
 }
 
 fn score_func(a: char, b: char) -> i32 {
@@ -31,7 +39,9 @@ fn gap_penalty(gap: u32) -> u32 {
     }
 }
 
-pub fn build_score_matrix(a: &str, b: &str) -> usize {
+// TODO: score and penalty functions should be arguments.
+pub fn build_score_matrix(a: &str, b: &str) -> (matrix::format::Conventional<f32>,
+                                                matrix::format::Conventional<u8>) {
     let mut score_matrix: Conventional<f32> = Conventional::zero(
         (a.len() + 1, b.len() + 1));
     let mut traceback_matrix: Conventional<u8> = Conventional::zero(
@@ -54,25 +64,26 @@ pub fn build_score_matrix(a: &str, b: &str) -> usize {
             ];
             scores.sort_by_key(|k| ordered_float::OrderedFloat(k.0));
             scores.reverse();
-            let scores = scores;
             println!("{:?}", scores);
 
-            // max_score = scores[0][0]
+            let max_score = scores[0].0;
+            println!("max_score: {:?}", max_score);
+
+            let scores = scores.iter().take_while(|n| n.0 == max_score);
             // scores = itertools.takewhile(
             //     lambda x: x[0] == max_score,
             //     scores)
 
+            score_matrix[(row, col)] = max_score;
             // score_matrix[row, col] = max_score
-            // for _, direction in scores:
-            //     traceback_matrix[row, col] = traceback_matrix[row, col] | direction.value
 
-
-            // println!("{} {} {} {}", row, row_char, col, col_char);
+            for (_, direction) in scores {
+                traceback_matrix[(row, col)] = traceback_matrix[(row, col)] | direction_value(direction);
+            }
         }
     }
 
-    // return score_matrix, traceback_matrix
-    score_matrix.len()
+    (score_matrix, traceback_matrix)
 }
 
 #[cfg(test)]
@@ -89,4 +100,5 @@ mod tests {
         let l = build_score_matrix("asdf", "zxcv");
         assert_eq!(l, 25);
     }
+
 }
