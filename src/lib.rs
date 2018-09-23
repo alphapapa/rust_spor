@@ -1,7 +1,5 @@
+extern crate ndarray;
 extern crate ordered_float;
-extern crate matrix;
-
-use matrix::prelude::*;
 
 // TODO: Consider writing our own matrix for the learning experience.
 // TODO: Consider using the seal library for smith-waterman. Once we learn how to do it ourselves...
@@ -23,6 +21,7 @@ fn direction_value(direction: &Direction) -> u8 {
     }
 }
 
+// TODO: These should just return an f32
 fn score_func(a: char, b: char) -> i32 {
     if a == b {
         3
@@ -40,11 +39,11 @@ fn gap_penalty(gap: u32) -> u32 {
 }
 
 // TODO: score and penalty functions should be arguments.
-pub fn build_score_matrix(a: &str, b: &str) -> (matrix::format::Conventional<f32>,
-                                                matrix::format::Conventional<u8>) {
-    let mut score_matrix: Conventional<f32> = Conventional::zero(
+pub fn build_score_matrix(a: &str, b: &str) -> (ndarray::Array2<f32>,
+                                                ndarray::Array2<u8>) {
+    let mut score_matrix = ndarray::Array2::<f32>::zeros(
         (a.len() + 1, b.len() + 1));
-    let mut traceback_matrix: Conventional<u8> = Conventional::zero(
+    let mut traceback_matrix = ndarray::Array2::<u8>::zeros(
         (a.len() + 1, b.len() + 1));
 
     for (row, a_char) in a.chars().enumerate() {
@@ -64,10 +63,8 @@ pub fn build_score_matrix(a: &str, b: &str) -> (matrix::format::Conventional<f32
             ];
             scores.sort_by_key(|k| ordered_float::OrderedFloat(k.0));
             scores.reverse();
-            println!("{:?}", scores);
 
             let max_score = scores[0].0;
-            println!("max_score: {:?}", max_score);
 
             let scores = scores.iter().take_while(|n| n.0 == max_score);
 
@@ -88,28 +85,23 @@ mod tests {
 
     #[test]  
     fn canned_score_matrix() {
-        let input1 = "TGTTACGG";
-        let input2 = "GGTTGACTA";
-        let expected = [[0, 0, 0, 0, 0, 0, 0, 0, 0],
-                        [0, 0, 3, 1, 0, 0, 0, 3, 3],
-                        [0, 0, 3, 1, 0, 0, 0, 3, 6],
-                        [0, 3, 1, 6, 4, 2, 0, 1, 4],
-                        [0, 3, 1, 4, 9, 7, 5, 3, 2],
-                        [0, 1, 6, 4, 7, 6, 4, 8, 6],
-                        [0, 0, 4, 3, 5, 10, 8, 6, 5],
-                        [0, 0, 2, 1, 3, 8, 13, 11, 9],
-                        [0, 3, 1, 5, 4, 6, 11, 10, 8],
-                        [0, 1, 0, 3, 2, 7, 9, 8, 7]];
-        let mut exp_matrix: Conventional<f32> = Conventional::zero((input2.len() + 1, input1.len() + 1));
-        // TODO: Is there a way to take a window of exp_matrix and fill it with the contents of expected?
-        for row in 0..expected.len() {
-            for col in 0..expected[row].len() {
-                exp_matrix[(row, col)] = expected[row][col] as f32;
-            }
-        }
+        let input1 = "GGTTGACTA";
+        let input2 = "TGTTACGG";
+        let expected = ndarray::Array::from_shape_vec(
+            (10, 9),
+            vec![0, 0, 0, 0, 0, 0, 0, 0, 0,
+                 0, 0, 3, 1, 0, 0, 0, 3, 3,
+                 0, 0, 3, 1, 0, 0, 0, 3, 6,
+                 0, 3, 1, 6, 4, 2, 0, 1, 4,
+                 0, 3, 1, 4, 9, 7, 5, 3, 2,
+                 0, 1, 6, 4, 7, 6, 4, 8, 6,
+                 0, 0, 4, 3, 5, 10, 8, 6, 5,
+                 0, 0, 2, 1, 3, 8, 13, 11, 9,
+                 0, 3, 1, 5, 4, 6, 11, 10, 8,
+                 0, 1, 0, 3, 2, 7, 9, 8, 7].iter().map(|n| {*n as f32}).collect()).unwrap();
         
-        let (score_matrix, _) = build_score_matrix(input2, input1);
-        assert_eq!(exp_matrix, score_matrix);
+        let (score_matrix, _) = build_score_matrix(input1, input2);
+        assert_eq!(expected, score_matrix);
     }
 
 }
