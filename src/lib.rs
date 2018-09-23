@@ -1,7 +1,6 @@
 extern crate ndarray;
 extern crate ordered_float;
 
-// TODO: Consider writing our own matrix for the learning experience.
 // TODO: Consider using the seal library for smith-waterman. Once we learn how to do it ourselves...
 
 #[derive(Debug)]
@@ -22,19 +21,19 @@ fn direction_value(direction: &Direction) -> u8 {
 }
 
 // TODO: These should just return an f32
-fn score_func(a: char, b: char) -> i32 {
+fn score_func(a: char, b: char) -> f32 {
     if a == b {
-        3
+        3.0
     } else {
-        -3
+        -3.0
     }
 }
 
-fn gap_penalty(gap: u32) -> u32 {
+fn gap_penalty(gap: u32) -> f32 {
     if gap == 1 {
-        2
+        2.0
     } else {
-        gap * gap_penalty(1)
+        (gap as f32) * gap_penalty(1)
     }
 }
 
@@ -50,14 +49,14 @@ pub fn build_score_matrix(a: &str, b: &str) -> (ndarray::Array2<f32>,
         for (col, b_char) in b.chars().enumerate() {
             let row = row + 1;
             let col = col + 1;
-            let match_score = score_func(a_char, b_char) as f32;
+            let match_score = score_func(a_char, b_char);
 
             let mut scores = [
                 (score_matrix[(row - 1, col - 1)] + match_score,
                  Direction::DIAG),
-                (score_matrix[(row - 1, col)] - (gap_penalty(1) as f32),
+                (score_matrix[(row - 1, col)] - gap_penalty(1),
                  Direction::UP),
-                (score_matrix[(row, col - 1)] - (gap_penalty(1) as f32),
+                (score_matrix[(row, col - 1)] - gap_penalty(1),
                  Direction::LEFT),
                 (0.0, Direction::NONE)
             ];
