@@ -29,8 +29,9 @@ pub fn build_score_matrix(
     a: &str,
     b: &str,
     score_func: &ScoringFunction,
-    gap_penalty: &GapPenaltyFunction) -> (ndarray::Array2<f32>,
-                                          ndarray::Array2<u8>) {
+    gap_penalty: &GapPenaltyFunction)
+    -> (ndarray::Array2<f32>,
+        ndarray::Array2<u8>) {
     let mut score_matrix = ndarray::Array2::<f32>::zeros(
         (a.len() + 1, b.len() + 1));
     let mut traceback_matrix = ndarray::Array2::<u8>::zeros(
