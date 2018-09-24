@@ -15,4 +15,3 @@ pub fn gap_penalty(gap: u32) -> f32 {
         (gap as f32) * gap_penalty(1)
     }
 }
-

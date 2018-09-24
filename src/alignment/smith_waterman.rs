@@ -10,7 +10,7 @@ type GapPenaltyFunction = Fn(u32) -> f32;
 pub enum Direction {
     Diag,
     Up,
-    Left
+    Left,
 }
 
 type Directions = Vec<Direction>;
@@ -22,9 +22,9 @@ type Traceback = Vec<Index>;
 
 #[derive(Debug, PartialEq)]
 pub enum AlignmentCell {
-    Both {left: usize, right: usize}, // no gap; indices for both strings
-    RightGap {left: usize},           // gap on right; index is for left string
-    LeftGap {right: usize},       // gap on left; index is for right string
+    Both { left: usize, right: usize }, // no gap; indices for both strings
+    RightGap { left: usize },           // gap on right; index is for left string
+    LeftGap { right: usize },           // gap on left; index is for right string
 }
 type Alignment = Vec<AlignmentCell>;
 
@@ -33,9 +33,7 @@ type Alignment = Vec<AlignmentCell>;
 // Note that tracebacks are in reverse. The first element in the traceback is
 // the "biggest" index in the traceback, and they work their way backward
 // through the strings being aligned.
-pub fn tracebacks(traceback_matrix: &TracebackMatrix,
-                  idx: Index) -> Vec<Traceback>
-{
+pub fn tracebacks(traceback_matrix: &TracebackMatrix, idx: Index) -> Vec<Traceback> {
     let directions = traceback_matrix.get(idx).expect("index is invalid");
     if directions.is_empty() {
         vec![vec![]]
@@ -68,16 +66,12 @@ pub fn build_score_matrix(
     a: &str,
     b: &str,
     score_func: &ScoringFunction,
-    gap_penalty: &GapPenaltyFunction)
-    -> (ScoreMatrix,
-        TracebackMatrix)
-{
-    let mut score_matrix = ScoreMatrix::zeros(
-        (a.len() + 1, b.len() + 1));
+    gap_penalty: &GapPenaltyFunction,
+) -> (ScoreMatrix, TracebackMatrix) {
+    let mut score_matrix = ScoreMatrix::zeros((a.len() + 1, b.len() + 1));
 
-    let mut traceback_matrix = TracebackMatrix::from_elem(
-        (a.len() + 1, b.len() + 1),
-        Directions::new());
+    let mut traceback_matrix =
+        TracebackMatrix::from_elem((a.len() + 1, b.len() + 1), Directions::new());
 
     for (row, a_char) in a.chars().enumerate() {
         for (col, b_char) in b.chars().enumerate() {
@@ -86,19 +80,25 @@ pub fn build_score_matrix(
             let match_score = score_func(a_char, b_char);
 
             let scores = [
-                (Direction::Diag,
-                 score_matrix[(row - 1, col - 1)] + match_score),
-                (Direction::Up,
-                 score_matrix[(row - 1, col)] - gap_penalty(1)),
-                (Direction::Left,
-                 score_matrix[(row, col - 1)] - gap_penalty(1))
+                (
+                    Direction::Diag,
+                    score_matrix[(row - 1, col - 1)] + match_score,
+                ),
+                (Direction::Up, score_matrix[(row - 1, col)] - gap_penalty(1)),
+                (
+                    Direction::Left,
+                    score_matrix[(row, col - 1)] - gap_penalty(1),
+                ),
             ];
 
-            let max_score = scores.iter()
+            let max_score = scores
+                .iter()
                 .max_by_key(|n| ordered_float::OrderedFloat(n.1))
-                .unwrap().1;
+                .unwrap()
+                .1;
 
-            let directions: Vec<Direction> = scores.iter()
+            let directions: Vec<Direction> = scores
+                .iter()
                 .filter(|n| n.1 == max_score)
                 .map(|n| n.0)
                 .collect();
@@ -124,10 +124,7 @@ pub fn build_score_matrix(
 //
 // Returns: An iterable of (index, index) tupless where ether (but not both)
 //   tuples can be `None`.
-fn traceback_to_alignment(
-    traceback: &Traceback
-) -> Result<Alignment, String>
-{
+fn traceback_to_alignment(traceback: &Traceback) -> Result<Alignment, String> {
     if traceback.is_empty() {
         return Result::Ok(Alignment::new());
     }
@@ -141,29 +138,33 @@ fn traceback_to_alignment(
     let mut alignment = Alignment::new();
 
     // The first element in the traceback is always included.
-    alignment.push(AlignmentCell::Both {left: traceback[0].0, right: traceback[0].1});
+    alignment.push(AlignmentCell::Both {
+        left: traceback[0].0,
+        right: traceback[0].1,
+    });
 
     println!("traceback: {:?}", traceback);
     // Now compare adjacent traceback entries to see how they changed.
     for ((curr_a, curr_b), (next_a, next_b)) in traceback.iter().zip(traceback.iter().skip(1)) {
         if *next_a == curr_a + 1 {
             if *next_b == curr_b + 1 {
-                alignment.push(AlignmentCell::Both {left: *next_a, right: *next_b});
-            }
-            else {
+                alignment.push(AlignmentCell::Both {
+                    left: *next_a,
+                    right: *next_b,
+                });
+            } else {
                 if next_b != curr_b {
                     return Result::Err(format!("Invalid traceback: {:?}", traceback));
                 }
 
-                alignment.push(AlignmentCell::RightGap {left: *next_a});
+                alignment.push(AlignmentCell::RightGap { left: *next_a });
             }
-        }
-        else {
+        } else {
             if next_a != curr_a {
                 return Result::Err(format!("Invalid traceback: {:?}", traceback));
             }
 
-            alignment.push(AlignmentCell::LeftGap {right: *next_b});
+            alignment.push(AlignmentCell::LeftGap { right: *next_b });
         }
     }
 
@@ -190,15 +191,16 @@ pub fn align(
     a: &str,
     b: &str,
     score_func: &ScoringFunction,
-    gap_penalty: &GapPenaltyFunction
-) -> (f32, Vec<Alignment>)
-{
+    gap_penalty: &GapPenaltyFunction,
+) -> (f32, Vec<Alignment>) {
     let (score_matrix, tb_matrix) = build_score_matrix(a, b, score_func, gap_penalty);
-    let max_score = score_matrix.iter()
+    let max_score = score_matrix
+        .iter()
         .max_by_key(|&n| ordered_float::OrderedFloat(*n))
         .expect("alignment is not possible with empty strings.");
 
-    let max_indices: Vec<Index> = score_matrix.indexed_iter()
+    let max_indices: Vec<Index> = score_matrix
+        .indexed_iter()
         .filter(|(_, score)| *score == max_score)
         .map(|(index, _)| index)
         .collect();
@@ -208,7 +210,7 @@ pub fn align(
         for traceback in tracebacks(&tb_matrix, index) {
             match traceback_to_alignment(&traceback) {
                 Ok(alignment) => alignments.push(alignment),
-                Err(msg) => panic!(msg)
+                Err(msg) => panic!(msg),
             }
         }
     }
@@ -220,53 +222,45 @@ mod tests {
     extern crate ndarray;
 
     use super::*;
-    use ::scoring::*;
+    use scoring::*;
 
     const INPUT1: &str = "GGTTGACTA";
     const INPUT2: &str = "TGTTACGG";
 
     #[test]
     fn canned_tracebacks() {
-        let (score_matrix, traceback_matrix) = build_score_matrix(
-            INPUT1, INPUT2, &score_func, &gap_penalty);
+        let (score_matrix, traceback_matrix) =
+            build_score_matrix(INPUT1, INPUT2, &score_func, &gap_penalty);
 
-        let max_idx = score_matrix.indexed_iter()
+        let max_idx = score_matrix
+            .indexed_iter()
             .max_by_key(|n| ordered_float::OrderedFloat(*n.1))
-            .unwrap().0;
+            .unwrap()
+            .0;
 
         let tbs = tracebacks(&traceback_matrix, max_idx);
         assert_eq!(tbs.len(), 1);
 
-        let expected = [
-            (7, 6),
-            (6, 5),
-            (5, 4),
-            (4, 4),
-            (3, 3),
-            (2, 2),
-        ];
+        let expected = [(7, 6), (6, 5), (5, 4), (4, 4), (3, 3), (2, 2)];
 
         assert_eq!(tbs[0], expected);
     }
-
 
     #[test]
     fn canned_score_matrix() {
         let expected = ndarray::Array::from_shape_vec(
             (10, 9),
-            vec![0, 0, 0, 0, 0, 0, 0, 0, 0,
-                 0, 0, 3, 1, 0, 0, 0, 3, 3,
-                 0, 0, 3, 1, 0, 0, 0, 3, 6,
-                 0, 3, 1, 6, 4, 2, 0, 1, 4,
-                 0, 3, 1, 4, 9, 7, 5, 3, 2,
-                 0, 1, 6, 4, 7, 6, 4, 8, 6,
-                 0, 0, 4, 3, 5, 10, 8, 6, 5,
-                 0, 0, 2, 1, 3, 8, 13, 11, 9,
-                 0, 3, 1, 5, 4, 6, 11, 10, 8,
-                 0, 1, 0, 3, 2, 7, 9, 8, 7].iter().map(|n| {*n as f32}).collect()).unwrap();
+            vec![
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 1, 0, 0, 0, 3, 3, 0, 0, 3, 1, 0, 0, 0, 3, 6, 0,
+                3, 1, 6, 4, 2, 0, 1, 4, 0, 3, 1, 4, 9, 7, 5, 3, 2, 0, 1, 6, 4, 7, 6, 4, 8, 6, 0, 0,
+                4, 3, 5, 10, 8, 6, 5, 0, 0, 2, 1, 3, 8, 13, 11, 9, 0, 3, 1, 5, 4, 6, 11, 10, 8, 0,
+                1, 0, 3, 2, 7, 9, 8, 7,
+            ].iter()
+            .map(|n| *n as f32)
+            .collect(),
+        ).unwrap();
 
-        let (score_matrix, _) = build_score_matrix(
-            INPUT1, INPUT2, &score_func, &gap_penalty);
+        let (score_matrix, _) = build_score_matrix(INPUT1, INPUT2, &score_func, &gap_penalty);
 
         assert_eq!(expected, score_matrix);
     }
@@ -278,12 +272,12 @@ mod tests {
         assert_eq!(alignments.len(), 1);
 
         let expected = vec![
-            AlignmentCell::Both {left: 1, right: 1},
-            AlignmentCell::Both {left: 2, right: 2},
-            AlignmentCell::Both {left: 3, right: 3},
-            AlignmentCell::RightGap {left: 4},
-            AlignmentCell::Both {left: 5, right: 4},
-            AlignmentCell::Both {left: 6, right: 5}
+            AlignmentCell::Both { left: 1, right: 1 },
+            AlignmentCell::Both { left: 2, right: 2 },
+            AlignmentCell::Both { left: 3, right: 3 },
+            AlignmentCell::RightGap { left: 4 },
+            AlignmentCell::Both { left: 5, right: 4 },
+            AlignmentCell::Both { left: 6, right: 5 },
         ];
 
         assert_eq!(alignments[0], expected);
