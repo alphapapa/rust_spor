@@ -8,7 +8,7 @@ pub mod scoring;
 type ScoringFunction = Fn(char, char) -> f32;
 type GapPenaltyFunction = Fn(u32) -> f32;
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq, PartialOrd, Hash, Ord)]
+#[derive(Clone, Copy, Debug)]
 pub enum Direction {
     Diag,
     Up,
