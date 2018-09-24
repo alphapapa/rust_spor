@@ -1,8 +1,6 @@
 extern crate ndarray;
 extern crate ordered_float;
 
-use std::collections::HashMap;
-
 pub mod scoring;
 
 // TODO: Consider using the seal library for smith-waterman. Once we learn how to do it ourselves...
@@ -10,7 +8,7 @@ pub mod scoring;
 type ScoringFunction = Fn(char, char) -> f32;
 type GapPenaltyFunction = Fn(u32) -> f32;
 
-#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, PartialOrd, Hash, Ord)]
 pub enum Direction {
     Diag,
     Up,
@@ -27,9 +25,9 @@ type ScoreMatrix = ndarray::Array2<f32>;
 type TracebackMatrix = ndarray::Array2<Directions>;
 
 fn _tracebacks<T>(score_matrix: &ScoreMatrix,
-                  traceback_matrix: &TracebackMatrix,
+                  _traceback_matrix: &TracebackMatrix,
                   idx: T) -> [u32;0]
-    where T: ndarray::NdIndex<ndarray::Ix2> 
+    where T: ndarray::NdIndex<ndarray::Ix2>
 {
     let score = score_matrix[idx];
     if score == 0.0 {
@@ -90,7 +88,7 @@ pub fn build_score_matrix(
 
         let mut traceback_matrix = TracebackMatrix::from_shape_fn(
             (a.len() + 1, b.len() + 1),
-            |n| Directions::None);
+            |_| Directions::None);
 
     for (row, a_char) in a.chars().enumerate() {
         for (col, b_char) in b.chars().enumerate() {
@@ -98,35 +96,29 @@ pub fn build_score_matrix(
             let col = col + 1;
             let match_score = score_func(a_char, b_char);
 
-            let mut scores: HashMap<Direction, f32> = HashMap::new();
-            scores.insert(Direction::Diag,
-                          score_matrix[(row - 1, col - 1)] + match_score);
-            scores.insert(Direction::Up,
-                          score_matrix[(row - 1, col)] - gap_penalty(1));
-            scores.insert(Direction::Left,
-                          score_matrix[(row, col - 1)] - gap_penalty(1));
+            let scores = [
+                (Direction::Diag,
+                 score_matrix[(row - 1, col - 1)] + match_score),
+                (Direction::Up,
+                 score_matrix[(row - 1, col)] - gap_penalty(1)),
+                (Direction::Left,
+                 score_matrix[(row, col - 1)] - gap_penalty(1))
+            ];
 
-            let mut max_score = std::f32::MIN;
-            let mut diags: Vec<Direction> = vec![];
+            let max_score = scores.iter()
+                .max_by_key(|n| ordered_float::OrderedFloat(n.1))
+                .unwrap().1;
 
-            for (direction, &score) in &scores {
-                if score < max_score {
-                    continue;
-                }
-
-                if score > max_score {
-                    diags.clear();
-                    max_score = score;
-                }
-
-                diags.push(direction.clone());
-            }
+            let directions: Vec<Direction> = scores.iter()
+                .filter(|n| n.1 == max_score)
+                .map(|n| n.0)
+                .collect();
 
             if max_score > 0.0 {
                 score_matrix[(row, col)] = max_score;
 
-                if !diags.is_empty() {
-                    traceback_matrix[(row, col)] = Directions::Some(diags);
+                if !directions.is_empty() {
+                    traceback_matrix[(row, col)] = Directions::Some(directions);
                 }
             }
         }
@@ -134,4 +126,3 @@ pub fn build_score_matrix(
 
     (score_matrix, traceback_matrix)
 }
-
