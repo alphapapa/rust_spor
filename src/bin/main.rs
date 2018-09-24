@@ -6,7 +6,7 @@ const INPUT2: &str = "TGTTACGG";
 
 
 fn main() {
-    let (score_matrix, traceback_matrix) = spor::build_score_matrix(
+    let (score_matrix, traceback_matrix) = spor::alignment::smith_waterman::build_score_matrix(
         INPUT1, INPUT2,
         &spor::scoring::score_func,
         &spor::scoring::gap_penalty);
@@ -19,6 +19,6 @@ fn main() {
     println!("score_matrix: {:?}", score_matrix);
     println!("tb_matrix: {:?}", traceback_matrix);
 
-    let xxx = spor::tracebacks(&traceback_matrix, max_idx);
+    let xxx = spor::alignment::smith_waterman::tracebacks(&traceback_matrix, max_idx);
     println!("tracebacks: {:?}", xxx);
 }

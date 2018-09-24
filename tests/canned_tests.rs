@@ -1,10 +1,10 @@
 extern crate ndarray;
-extern crate spor;
 extern crate ordered_float;
+extern crate spor;
 
 use ordered_float::*;
-use spor::*;
 use spor::scoring::*;
+use spor::alignment::smith_waterman::*;
 
 const INPUT1: &str = "GGTTGACTA";
 const INPUT2: &str = "TGTTACGG";
