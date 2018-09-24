@@ -63,13 +63,14 @@ pub fn build_score_matrix(
     score_func: &ScoringFunction,
     gap_penalty: &GapPenaltyFunction)
     -> (ScoreMatrix,
-        TracebackMatrix) {
-        let mut score_matrix = ScoreMatrix::zeros(
-            (a.len() + 1, b.len() + 1));
+        TracebackMatrix)
+{
+    let mut score_matrix = ScoreMatrix::zeros(
+        (a.len() + 1, b.len() + 1));
 
-        let mut traceback_matrix = TracebackMatrix::from_shape_fn(
-            (a.len() + 1, b.len() + 1),
-            |_| Directions::None);
+    let mut traceback_matrix = TracebackMatrix::from_shape_fn(
+        (a.len() + 1, b.len() + 1),
+        |_| Directions::None);
 
     for (row, a_char) in a.chars().enumerate() {
         for (col, b_char) in b.chars().enumerate() {
