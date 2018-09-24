@@ -18,18 +18,16 @@ fn canned_tracebacks() {
         .max_by_key(|n| OrderedFloat(*n.1))
         .unwrap().0;
 
-    println!("{:?}", traceback_matrix);
-
     let tbs = tracebacks(&traceback_matrix, max_idx);
     assert_eq!(tbs.len(), 1);
 
     let expected = [
-        (2, 3),
-        (3, 3),
-        (4, 4),
-        (5, 4),
-        (6, 5),
         (7, 6),
+        (6, 5),
+        (5, 4),
+        (4, 4),
+        (3, 3),
+        (2, 2),
     ];
 
     assert_eq!(tbs[0], expected);
@@ -57,10 +55,20 @@ fn canned_score_matrix() {
     assert_eq!(expected, score_matrix);
 }
 
-// def test_canned_alignment():
-// _, alignments = align(ROWS, COLS, score, gap_penalty)
-//     alignments = list(alignments)
-//     assert len(alignments) == 1
-//     actual = tuple(alignments[0])
-//     expected = ((1, 1), (2, 2), (3, 3), (4, None), (5, 4), (6, 5))
-//     assert actual == expected
+#[test]
+fn canned_alignment() {
+    let (max_score, alignments) = align(INPUT1, INPUT2, &score_func, &gap_penalty);
+    assert_eq!(max_score, 13.0);
+    assert_eq!(alignments.len(), 1);
+
+    let expected = vec![
+        AlignmentCell::Both {left: 1, right: 1},
+        AlignmentCell::Both {left: 2, right: 2},
+        AlignmentCell::Both {left: 3, right: 3},
+        AlignmentCell::RightGap {left: 4},
+        AlignmentCell::Both {left: 5, right: 4},
+        AlignmentCell::Both {left: 6, right: 5}
+    ];
+
+    assert_eq!(alignments[0], expected);
+}
