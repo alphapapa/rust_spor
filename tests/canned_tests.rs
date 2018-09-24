@@ -14,20 +14,22 @@ fn canned_tracebacks() {
     let (score_matrix, traceback_matrix) = build_score_matrix(
         INPUT1, INPUT2, &score_func, &gap_penalty);
 
-    let (max_idx, max_score) = score_matrix.indexed_iter()
+    let max_idx = score_matrix.indexed_iter()
         .max_by_key(|n| OrderedFloat(*n.1))
-        .unwrap();
+        .unwrap().0;
 
-    let tbs = tracebacks(score_matrix, traceback_matrix, max_idx);
+    println!("{:?}", traceback_matrix);
+
+    let tbs = tracebacks(&traceback_matrix, max_idx);
     assert_eq!(tbs.len(), 1);
 
     let expected = [
-        ((2, 2), Direction::Diag),
-        ((3, 3), Direction::Diag),
-        ((4, 4), Direction::Diag),
-        ((5, 4), Direction::Up),
-        ((6, 5), Direction::Diag),
-        ((7, 6), Direction::Diag)
+        (2, 3),
+        (3, 3),
+        (4, 4),
+        (5, 4),
+        (6, 5),
+        (7, 6),
     ];
 
     assert_eq!(tbs[0], expected);

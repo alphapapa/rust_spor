@@ -8,7 +8,7 @@ pub mod scoring;
 type ScoringFunction = Fn(char, char) -> f32;
 type GapPenaltyFunction = Fn(u32) -> f32;
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Direction {
     Diag,
     Up,
@@ -24,42 +24,37 @@ pub enum Directions {
 type ScoreMatrix = ndarray::Array2<f32>;
 type TracebackMatrix = ndarray::Array2<Directions>;
 type Index = (ndarray::Ix, ndarray::Ix);
-type Traceback = Vec<((ndarray::Ix, ndarray::Ix), Direction)>;
+type Traceback = Vec<Index>;
 
 // Calculate the tracebacks for `traceback_matrix` starting at index `idx`.
-//
-// Returns: An iterable of tracebacks where each traceback is sequence of
-//   (index, direction) tuples. Each `index` is an index into
-//   `traceback_matrix`. `direction` indicates the direction into which the
-//   traceback "entered" the index.
-pub fn tracebacks(score_matrix: &ScoreMatrix,
-                 traceback_matrix: &TracebackMatrix,
-                 idx: Index) -> Vec<Traceback>
+pub fn tracebacks(traceback_matrix: &TracebackMatrix,
+                  idx: Index) -> Vec<Traceback>
 {
-    let mut tbs: Vec<Traceback> = Vec::new();
+    match traceback_matrix.get(idx).expect("index is invalid") {
+        Directions::None => vec![vec![]],
+        Directions::Some(directions) => {
+            let mut tbs: Vec<Traceback> = Vec::new();
 
+            let (row, col) = idx;
 
-    if let Directions::Some(ref dirs) = traceback_matrix.get(idx).expect("index is invalid") {
-        let (row, col) = idx;
+            for dir in directions {
+                let tail_idx = match dir {
+                    Direction::Up => (row - 1, col),
+                    Direction::Diag => (row - 1, col - 1),
+                    Direction::Left => (row, col - 1),
+                };
 
-        for dir in dirs {
-            let tail_idx = match dir {
-                Direction::Up => (row - 1, col),
-                Direction::Diag => (row - 1, col - 1),
-                Direction::Left => (row, col - 1),
-            };
+                let mut tails = tracebacks(traceback_matrix, tail_idx);
 
-            let tails = tracebacks(score_matrix, traceback_matrix, tail_idx);
-
-            for tail in tails {
-                let mut tb = vec![(idx, *dir)];
-                tb.extend(tail);
-                tbs.push(tb);
+                for mut tail in tails {
+                    tail.push(idx);
+                    tbs.push(tail);
+                }
             }
+
+            tbs
         }
     }
-
-    tbs
 }
 
 pub fn build_score_matrix(
