@@ -23,58 +23,44 @@ pub enum Directions {
 
 type ScoreMatrix = ndarray::Array2<f32>;
 type TracebackMatrix = ndarray::Array2<Directions>;
+type Index = (ndarray::Ix, ndarray::Ix);
+type Traceback = Vec<((ndarray::Ix, ndarray::Ix), Direction)>;
 
-fn _tracebacks<T>(score_matrix: &ScoreMatrix,
-                  _traceback_matrix: &TracebackMatrix,
-                  idx: T) -> [u32;0]
-    where T: ndarray::NdIndex<ndarray::Ix2>
+// Calculate the tracebacks for `traceback_matrix` starting at index `idx`.
+//
+// Returns: An iterable of tracebacks where each traceback is sequence of
+//   (index, direction) tuples. Each `index` is an index into
+//   `traceback_matrix`. `direction` indicates the direction into which the
+//   traceback "entered" the index.
+pub fn tracebacks(score_matrix: &ScoreMatrix,
+                 traceback_matrix: &TracebackMatrix,
+                 idx: Index) -> Vec<Traceback>
 {
-    let score = score_matrix[idx];
-    if score == 0.0 {
-        return []
+    let mut tbs: Vec<Traceback> = Vec::new();
+
+
+    if let Directions::Some(ref dirs) = traceback_matrix.get(idx).expect("index is invalid") {
+        let (row, col) = idx;
+
+        for dir in dirs {
+            let tail_idx = match dir {
+                Direction::Up => (row - 1, col),
+                Direction::Diag => (row - 1, col - 1),
+                Direction::Left => (row, col - 1),
+            };
+
+            let tails = tracebacks(score_matrix, traceback_matrix, tail_idx);
+
+            for tail in tails {
+                let mut tb = vec![(idx, *dir)];
+                tb.extend(tail);
+                tbs.push(tb);
+            }
+        }
     }
 
-    // let directions = traceback_matrix[idx];
-    // assert!(direction_value(&directions) != direction_value(Direction::NONE),
-    //        "Tracebacks with direction NONE should have value 0!");
-    []
-
-//     score = score_matrix[idx]
-//     if score == 0:
-//         yield ()
-//         return
-
-//     directions = traceback_matrix[idx]
-
-//     assert directions != Direction.NONE, 'Tracebacks with direction NONE should have value 0!'
-
-//     row, col = idx
-
-//     if directions & Direction.UP.value:
-//         for tb in _tracebacks(score_matrix, traceback_matrix, (row - 1, col)):
-//             yield itertools.chain(tb, ((idx, Direction.UP),))
-
-//     if directions & Direction.LEFT.value:
-//         for tb in _tracebacks(score_matrix, traceback_matrix, (row, col - 1)):
-//             yield itertools.chain(tb, ((idx, Direction.LEFT),))
-
-//     if directions & Direction.DIAG.value:
-//         for tb in _tracebacks(score_matrix, traceback_matrix, (row - 1, col - 1)):
-//             yield itertools.chain(tb, ((idx, Direction.DIAG),))
+    tbs
 }
-
-// def tracebacks(score_matrix, traceback_matrix, idx):
-// """Calculate the tracebacks for `traceback_matrix` starting at index `idx`.
-
-//     Returns: An iterable of tracebacks where each traceback is sequence of
-//       (index, direction) tuples. Each `index` is an index into
-//       `traceback_matrix`. `direction` indicates the direction into which the
-//       traceback "entered" the index.
-//     """
-//     return filter(lambda tb: tb != (),
-//                   _tracebacks(score_matrix,
-//                               traceback_matrix,
-//                               idx))
 
 pub fn build_score_matrix(
     a: &str,

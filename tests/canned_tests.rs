@@ -1,6 +1,8 @@
 extern crate ndarray;
 extern crate spor;
+extern crate ordered_float;
 
+use ordered_float::*;
 use spor::*;
 use spor::scoring::*;
 
@@ -9,39 +11,30 @@ const INPUT2: &str = "TGTTACGG";
 
 #[test]
 fn canned_tracebacks() {
-    // let (score_matrix, _) = build_score_matrix(
-    //     INPUT1, INPUT2, &score_func, &gap_penalty);
+    let (score_matrix, traceback_matrix) = build_score_matrix(
+        INPUT1, INPUT2, &score_func, &gap_penalty);
 
-    // let mut max_idx = (0, 0);
-    // let mut max_score = std::f32::MIN;
+    let (max_idx, max_score) = score_matrix.indexed_iter()
+        .max_by_key(|n| OrderedFloat(*n.1))
+        .unwrap();
 
-    // // TODO: Is there a way to lazily enumerate the array? We rolls our own for now...
-    // for row in 0..score_matrix.dim().0 {
-    //     for col in 0..score_matrix.dim().1 {
-    //         let score = score_matrix[(row, col)];
-    //         if score > max_score {
-    //             max_score = score;
-    //             max_idx = (row, col);
-    //         }
-    //     }
-    // }
+    let tbs = tracebacks(score_matrix, traceback_matrix, max_idx);
+    assert_eq!(tbs.len(), 1);
 
-//     tbs = list(tracebacks(score_matrix, traceback_matrix, max_idx))
-//     assert len(tbs) == 1
+    let expected = [
+        ((2, 2), Direction::Diag),
+        ((3, 3), Direction::Diag),
+        ((4, 4), Direction::Diag),
+        ((5, 4), Direction::Up),
+        ((6, 5), Direction::Diag),
+        ((7, 6), Direction::Diag)
+    ];
 
-//     expected = (
-//         ((2, 2), Direction.DIAG),
-//         ((3, 3), Direction.DIAG),
-//         ((4, 4), Direction.DIAG),
-//         ((5, 4), Direction.UP),
-//         ((6, 5), Direction.DIAG),
-//         ((7, 6), Direction.DIAG))
-
-//     assert tuple(tbs[0]) == expected
+    assert_eq!(tbs[0], expected);
 }
 
 
-#[test]  
+#[test]
 fn canned_score_matrix() {
     let expected = ndarray::Array::from_shape_vec(
         (10, 9),
@@ -55,7 +48,7 @@ fn canned_score_matrix() {
              0, 0, 2, 1, 3, 8, 13, 11, 9,
              0, 3, 1, 5, 4, 6, 11, 10, 8,
              0, 1, 0, 3, 2, 7, 9, 8, 7].iter().map(|n| {*n as f32}).collect()).unwrap();
-    
+
     let (score_matrix, _) = build_score_matrix(
         INPUT1, INPUT2, &score_func, &gap_penalty);
 
