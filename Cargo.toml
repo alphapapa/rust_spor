@@ -3,7 +3,14 @@ name = "spor"
 version = "0.1.0"
 authors = ["Austin Bingham <austin.bingham@gmail.com>"]
 
+[lib]
+name = "rust_spor"
+crate-type = ["cdylib"]
+
 [dependencies]
 ndarray = "0.12.0"
 ordered-float = "1.0.1"
 yaml-rust = "0.4.2"
+
+[dependencies.cpython]
+version = "0.2"
