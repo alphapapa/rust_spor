@@ -9,7 +9,7 @@ use alignment::smith_waterman::*;
 use cpython::*;
 
 fn align(py: Python, a: String, b: String) -> PyResult<PyList> {
-    let (score, alignments) = alignment::smith_waterman::align(
+    let (_score, alignments) = alignment::smith_waterman::align(
         &*a,
         &*b,
         &scoring::score_func,
@@ -20,9 +20,9 @@ fn align(py: Python, a: String, b: String) -> PyResult<PyList> {
         let mut py_alignment = vec![];
         for cell in alignment {
             let py_cell = match cell {
-                AlignmentCell::Both {left, right} => (left, right).to_py_object(py),
-                AlignmentCell::RightGap {left} => (left, py.None()).to_py_object(py),
-                AlignmentCell::LeftGap {right} => (py.None(), right).to_py_object(py),
+                AlignmentCell::Both {left, right} => (Some(left), Some(right)),
+                AlignmentCell::RightGap {left} => (Some(left), None),
+                AlignmentCell::LeftGap {right} => (None, Some(right)),
             };
             py_alignment.push(py_cell);
         }
