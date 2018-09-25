@@ -8,6 +8,7 @@ name = "rust_spor"
 crate-type = ["cdylib"]
 
 [dependencies]
+cute = "0.3.0"
 ndarray = "0.12.0"
 ordered-float = "1.0.1"
 yaml-rust = "0.4.2"
