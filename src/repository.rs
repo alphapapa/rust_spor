@@ -7,13 +7,36 @@ use std::path::{Path, PathBuf};
 
 use anchor::Anchor;
 
-struct Repository {
-    root: Box<Path>,
-    spor_dir: Box<Path>
+pub struct Repository {
+    root: PathBuf,
+    spor_dir: PathBuf
 }
 
 impl Repository {
-    fn add(&self,
+    pub fn new(path: &Path, spor_dir: Option<&Path>) -> Result<Repository>
+    {
+        let path = PathBuf::from(path).canonicalize()?;
+        let spor_dir = match spor_dir {
+            None => PathBuf::from(".spor"),
+            Some(dir) => PathBuf::from(dir)
+        };
+        let spor_dir = path.join(spor_dir);
+
+        if !spor_dir.exists() {
+            return Err(
+                Error::new(
+                    ErrorKind::NotFound,
+                    format!("spor directory not found: {:?}", spor_dir)));
+        }
+
+        let repo = Repository {
+            root: path,
+            spor_dir: spor_dir
+        };
+        Ok(repo)
+    }
+
+    pub fn add(&self,
            metadata: serde_yaml::Value,
            file_path: &Path,
            line_number: usize,
