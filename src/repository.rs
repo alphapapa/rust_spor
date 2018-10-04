@@ -15,6 +15,7 @@ fn new_anchor_id() -> AnchorId {
     format!("{}", uuid::Uuid::new_v4())
 }
 
+#[derive(Debug)]
 pub struct Repository {
     root: PathBuf,
     spor_dir: PathBuf
@@ -42,25 +43,52 @@ fn read_anchor(anchor_path: &PathBuf) -> io::Result<Anchor> {
     }
 }
 
+/// Search for a spor repo containing `path`.
+///
+/// This searches for `spor_dir` in directories dominating `path`. If a
+/// directory containing `spor_dir` is found, then that directory is returned.
+///
+/// Returns: The dominating directory containing `spor_dir`.
+fn find_root_dir(path: &Path, spor_dir: &Path) -> io::Result<Option<PathBuf>> {
+    let p = PathBuf::from(path).canonicalize()?;
+
+    for ancestor in p.ancestors() {
+        let data_dir = ancestor.join(spor_dir);
+        if data_dir.exists() && data_dir.is_dir() {
+            return Ok(Some(ancestor.to_path_buf()));
+        }
+    }
+
+    Ok(None)
+}
+
 impl Repository {
+
+    /// Find the repository directory for the file `path` and return a
+    /// `Repository` for it.
     pub fn new(path: &Path, spor_dir: Option<&Path>) -> io::Result<Repository>
     {
-        let path = PathBuf::from(path).canonicalize()?;
         let spor_dir = match spor_dir {
             None => PathBuf::from(".spor"),
             Some(dir) => PathBuf::from(dir)
         };
-        let spor_dir = path.join(spor_dir);
 
-        if !spor_dir.exists() {
-            return Err(
+
+        let root = find_root_dir(path, &spor_dir)?;
+        let root = match root {
+            None => return Err(
                 io::Error::new(
                     io::ErrorKind::NotFound,
-                    format!("spor directory not found: {:?}", spor_dir)));
-        }
+                    format!("spor repository not found for {:?}", path))),
+            Some(p) => p
+        };
+
+        let spor_dir = root.join(spor_dir);
+        assert!(spor_dir.exists(),
+                "spor-dir not found after find_root_dir succeeded!");
 
         let repo = Repository {
-            root: path,
+            root: root,
             spor_dir: spor_dir
         };
         Ok(repo)
@@ -90,17 +118,21 @@ impl Repository {
         path
     }
 
-    pub fn iter(&self) -> RepositoryIterator
-    {
-        RepositoryIterator::new(&self.spor_dir)
-    }
-
     // get by id
     // update
     // remove
     // iterate
     // items
 
+}
+
+impl IntoIterator for Repository {
+    type Item = <RepositoryIterator as Iterator>::Item;
+    type IntoIter = RepositoryIterator;
+
+    fn into_iter(self) -> Self::IntoIter {
+        RepositoryIterator::new(&self.spor_dir)
+    }
 }
 
 pub struct RepositoryIterator {
@@ -175,4 +207,16 @@ pub fn initialize(path: &Path, spor_dir: Option<&Path>) -> io::Result<()> {
     let mut builder = DirBuilder::new();
     builder.recursive(true);
     builder.create(spor_path)
+}
+
+// Find all anchors for `file_name`.
+pub fn find_anchors(file_name: &Path, spor_dir: Option<&Path>) -> io::Result<Vec<Anchor>> {
+    let repo = Repository::new(file_name, spor_dir)?;
+    let anchors = repo.into_iter()
+        .filter_map(
+            |r| match r {
+                Ok((_id, a)) => Some(a),
+                _ => None})
+        .collect();
+    Ok(anchors)
 }

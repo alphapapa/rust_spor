@@ -5,7 +5,7 @@ extern crate docopt;
 extern crate spor;
 
 use docopt::Docopt;
-use spor::repository::Repository;
+use spor::repository::{find_anchors, Repository};
 use std::io;
 
 const USAGE: &'static str = "
@@ -14,7 +14,7 @@ spor
 Usage:
   spor init
   spor add <source-file> <line-number> [<begin-offset> <end-offset>]
-  spor list
+  spor list <source-file>
 
 Options:
   -h --help     Show this screen.
@@ -75,12 +75,11 @@ fn add_handler(args: &Args) -> std::io::Result<()> {
     }
 }
 
-fn list_handler(_args: &Args) -> io::Result<()> {
-    let path = std::env::current_dir()?;
-    let repo = Repository::new(&path, None)?;
-
-    for a in repo.iter() {
-        println!("{:?}", a);
+fn list_handler(args: &Args) -> io::Result<()> {
+    let file = std::path::Path::new(&args.arg_source_file);
+    let anchors = find_anchors(file, None)?;
+    for anchor in anchors {
+        println!("{:?}", anchor);
     }
 
     Ok(())
