@@ -208,14 +208,3 @@ pub fn initialize(path: &Path, spor_dir: Option<&Path>) -> io::Result<()> {
     builder.recursive(true);
     builder.create(spor_path)
 }
-
-// Find all anchors for `file_name`.
-pub fn find_anchors(file_name: &Path, spor_dir: Option<&Path>) -> io::Result<Box<Iterator<Item = Anchor>>> {
-    let repo = Repository::new(file_name, spor_dir)?;
-    let anchors = repo.into_iter()
-        .filter_map(
-            |r| match r {
-                Ok((_id, a)) => Some(a),
-                _ => None});
-    Ok(Box::from(anchors))
-}

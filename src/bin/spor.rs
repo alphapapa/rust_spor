@@ -5,7 +5,7 @@ extern crate docopt;
 extern crate spor;
 
 use docopt::Docopt;
-use spor::repository::{find_anchors, Repository};
+use spor::repository::Repository;
 use std::io;
 
 const USAGE: &'static str = "
@@ -77,9 +77,11 @@ fn add_handler(args: &Args) -> std::io::Result<()> {
 
 fn list_handler(args: &Args) -> io::Result<()> {
     let file = std::path::Path::new(&args.arg_source_file);
-    let anchors = find_anchors(file, None)?;
-    for anchor in anchors {
-        println!("{:?}", anchor);
+    let repo = Repository::new(file, None)?;
+    for anchor in repo {
+        if let Ok((_id, a)) = anchor {
+            println!("{:?}", a);
+        }
     }
 
     Ok(())
