@@ -5,7 +5,7 @@ use std::fs::File;
 use std::io::{BufRead, BufReader, Result};
 use std::path::{Path, PathBuf};
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 struct Context {
     before: Vec<String>,
     line: String,
@@ -71,7 +71,7 @@ impl Context {
 //     }
 // }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct Anchor {
     file_path: PathBuf,
     line_number: usize,

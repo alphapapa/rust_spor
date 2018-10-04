@@ -6,7 +6,7 @@ extern crate spor;
 
 use docopt::Docopt;
 use spor::repository::Repository;
-use std::io::{Error, ErrorKind};
+use std::io;
 
 const USAGE: &'static str = "
 spor
@@ -14,6 +14,7 @@ spor
 Usage:
   spor init
   spor add <source-file> <line-number> [<begin-offset> <end-offset>]
+  spor list
 
 Options:
   -h --help     Show this screen.
@@ -24,6 +25,7 @@ Options:
 struct Args {
     cmd_init: bool,
     cmd_add: bool,
+    cmd_list: bool,
     arg_source_file: String,
     arg_line_number: usize,
     arg_begin_offset: Option<usize>,
@@ -37,7 +39,7 @@ struct Args {
     // cmd_mine: bool,
 }
 
-fn init_handler() -> std::io::Result<()> {
+fn init_handler() -> io::Result<()> {
     let path = std::env::current_dir()?;
     spor::repository::initialize(&path, None)
 }
@@ -54,8 +56,11 @@ fn add_handler(args: &Args) -> std::io::Result<()> {
         None => None
     };
 
+    // TODO: Consider support for launching an editor when necessary.
     let metadata = match serde_yaml::from_reader(std::io::stdin()) {
-        Err(err) => return Err(Error::new(ErrorKind::InvalidInput, format!("{:?}", err))),
+        Err(err) => return Err(
+            io::Error::new(
+                io::ErrorKind::InvalidInput, format!("{:?}", err))),
         Ok(metadata) => metadata
     };
 
@@ -70,6 +75,17 @@ fn add_handler(args: &Args) -> std::io::Result<()> {
     }
 }
 
+fn list_handler(_args: &Args) -> io::Result<()> {
+    let path = std::env::current_dir()?;
+    let repo = Repository::new(&path, None)?;
+
+    for a in repo.iter() {
+        println!("{:?}", a);
+    }
+
+    Ok(())
+}
+
 fn main() {
     let args: Args = Docopt::new(USAGE)
         .and_then(|d| d.deserialize())
@@ -82,6 +98,11 @@ fn main() {
     }
     else if args.cmd_add {
         if let Err(err) = add_handler(&args) {
+            println!("{}", err);
+        }
+    }
+    else if args.cmd_list {
+        if let Err(err) = list_handler(&args) {
             println!("{}", err);
         }
     }
