@@ -22,7 +22,7 @@ pub struct Repository {
 }
 
 fn write_anchor(anchor_path: &Path, anchor: &Anchor) -> io::Result<()> {
-    let f = File::open(anchor_path)?;
+    let f = File::create(anchor_path)?;
     let writer = io::BufWriter::new(f);
     match serde_yaml::to_writer(writer, &anchor) {
         Err(info) => return Err(
@@ -104,6 +104,13 @@ impl Repository {
         let anchor = Anchor::new(3, file_path, line_number, metadata, columns, &self.root)?;
         let anchor_id = new_anchor_id();
         let anchor_path = self.anchor_path(&anchor_id);
+
+        if anchor_path.exists() {
+            return Err(
+                io::Error::new(
+                    io::ErrorKind::AlreadyExists,
+                    format!("{:?} already exists", anchor_path)));
+        }
 
         write_anchor(&anchor_path, &anchor)?;
 
