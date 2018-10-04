@@ -21,7 +21,7 @@ pub struct Repository {
     spor_dir: PathBuf
 }
 
-fn write_anchor(anchor_path: &PathBuf, anchor: &Anchor) -> io::Result<()> {
+fn write_anchor(anchor_path: &Path, anchor: &Anchor) -> io::Result<()> {
     let f = File::open(anchor_path)?;
     let writer = io::BufWriter::new(f);
     match serde_yaml::to_writer(writer, &anchor) {
@@ -32,7 +32,7 @@ fn write_anchor(anchor_path: &PathBuf, anchor: &Anchor) -> io::Result<()> {
     }
 }
 
-fn read_anchor(anchor_path: &PathBuf) -> io::Result<Anchor> {
+fn read_anchor(anchor_path: &Path) -> io::Result<Anchor> {
     let f = File::open(anchor_path)?;
     let reader = io::BufReader::new(f);
     match serde_yaml::from_reader(reader) {
@@ -210,13 +210,12 @@ pub fn initialize(path: &Path, spor_dir: Option<&Path>) -> io::Result<()> {
 }
 
 // Find all anchors for `file_name`.
-pub fn find_anchors(file_name: &Path, spor_dir: Option<&Path>) -> io::Result<Vec<Anchor>> {
+pub fn find_anchors(file_name: &Path, spor_dir: Option<&Path>) -> io::Result<Box<Iterator<Item = Anchor>>> {
     let repo = Repository::new(file_name, spor_dir)?;
     let anchors = repo.into_iter()
         .filter_map(
             |r| match r {
                 Ok((_id, a)) => Some(a),
-                _ => None})
-        .collect();
-    Ok(anchors)
+                _ => None});
+    Ok(Box::from(anchors))
 }
