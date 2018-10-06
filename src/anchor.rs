@@ -1,15 +1,13 @@
-extern crate yaml_rust;
-
 use std::cmp::max;
 use std::fs::File;
 use std::io::{BufRead, BufReader, Result};
 use std::path::{Path, PathBuf};
 
 #[derive(Debug, Deserialize, Serialize)]
-struct Context {
-    before: Vec<String>,
-    line: String,
-    after: Vec<String>
+pub struct Context {
+    pub before: Vec<String>,
+    pub line: String,
+    pub after: Vec<String>
 }
 
 impl Context {
@@ -73,11 +71,11 @@ impl Context {
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Anchor {
-    file_path: PathBuf,
-    line_number: usize,
-    columns: Option<(usize, usize)>,
-    context: Context,
-    metadata: serde_yaml::Value,
+    pub file_path: PathBuf,
+    pub line_number: usize,
+    pub columns: Option<(usize, usize)>,
+    pub context: Context,
+    pub metadata: serde_yaml::Value,
 }
 
 impl Anchor {

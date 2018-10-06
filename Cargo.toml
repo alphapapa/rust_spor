@@ -4,6 +4,7 @@ version = "0.1.0"
 authors = ["Austin Bingham <austin.bingham@gmail.com>"]
 
 [dependencies]
+diff = "0.1.11"
 docopt = "1"
 glob = "0.2"
 ndarray = "0.12.0"

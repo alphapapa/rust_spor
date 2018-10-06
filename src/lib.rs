@@ -5,3 +5,4 @@ pub mod alignment;
 pub mod anchor;
 pub mod repository;
 pub mod scoring;
+pub mod validation;

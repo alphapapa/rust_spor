@@ -8,7 +8,7 @@ use std::path::{Path, PathBuf};
 
 use anchor::Anchor;
 
-type AnchorId = String;
+pub type AnchorId = String;
 
 fn new_anchor_id() -> AnchorId {
     // TODO: Is there a more direct to_str() or something?
@@ -17,8 +17,8 @@ fn new_anchor_id() -> AnchorId {
 
 #[derive(Debug)]
 pub struct Repository {
-    root: PathBuf,
-    spor_dir: PathBuf
+    pub root: PathBuf,
+    pub spor_dir: PathBuf
 }
 
 fn write_anchor(anchor_path: &Path, anchor: &Anchor) -> io::Result<()> {
@@ -133,7 +133,7 @@ impl Repository {
 
 }
 
-impl IntoIterator for Repository {
+impl <'a> IntoIterator for &'a Repository {
     type Item = <RepositoryIterator as Iterator>::Item;
     type IntoIter = RepositoryIterator;
 
