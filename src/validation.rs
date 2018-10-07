@@ -3,6 +3,7 @@ extern crate diff;
 use std::path::Path;
 use super::anchor::{Anchor, Context};
 use super::repository::*;
+use super::result::Result;
 
 fn full_text(context: &Context) -> String {
     let mut text = vec![];
@@ -30,7 +31,7 @@ fn context_diff(_file_name: &Path, c1: &Context, c2: &Context) -> Diff {
     result
 }
 
-pub fn validate(repo: &Repository) -> Vec<Result<(AnchorId, std::path::PathBuf, Diff), String>> {
+pub fn validate(repo: &Repository) -> Vec<Result<(AnchorId, std::path::PathBuf, Diff)>> {
     let mut result = vec![];
 
     for r in repo {
@@ -51,7 +52,7 @@ pub fn validate(repo: &Repository) -> Vec<Result<(AnchorId, std::path::PathBuf, 
 
                 match new_anchor {
                     Err(err) => {
-                        result.push(Err(format!("{:?}", err)));
+                        result.push(Err(err.into()));
                     }
                     Ok(new_anchor) => {
                         assert!(anchor.file_path == new_anchor.file_path);

@@ -6,8 +6,8 @@ extern crate spor;
 
 use docopt::Docopt;
 use spor::repository::Repository;
+use spor::result::{from_str, Result};
 use spor::validation::validate;
-use std::io;
 
 const USAGE: &'static str = "
 spor
@@ -41,12 +41,12 @@ struct Args {
                                     * cmd_mine: bool */
 }
 
-fn init_handler() -> io::Result<()> {
+fn init_handler() -> Result<()> {
     let path = std::env::current_dir()?;
     spor::repository::initialize(&path, None)
 }
 
-fn add_handler(args: &Args) -> std::io::Result<()> {
+fn add_handler(args: &Args) -> Result<()> {
     let path = std::env::current_dir()?;
     let repo = Repository::new(&path, None)?;
 
@@ -61,7 +61,7 @@ fn add_handler(args: &Args) -> std::io::Result<()> {
 
     // TODO: Consider support for launching an editor when necessary.
     let metadata = match serde_yaml::from_reader(std::io::stdin()) {
-        Err(err) => return Err(io::Error::new(io::ErrorKind::InvalidInput, format!("{:?}", err))),
+        Err(err) => return Err(err.into()),
         Ok(metadata) => metadata,
     };
 
@@ -70,11 +70,11 @@ fn add_handler(args: &Args) -> std::io::Result<()> {
                    args.arg_line_number,
                    columns) {
         Ok(_) => Ok(()),
-        Err(err) => Err(err),
+        Err(err) => Err(err.into()),
     }
 }
 
-fn list_handler(args: &Args) -> io::Result<()> {
+fn list_handler(args: &Args) -> Result<()> {
     let file = std::path::Path::new(&args.arg_source_file);
     let repo = Repository::new(file, None)?;
     for anchor in &repo {
@@ -86,7 +86,7 @@ fn list_handler(args: &Args) -> io::Result<()> {
     Ok(())
 }
 
-fn validate_handler() -> io::Result<()> {
+fn validate_handler() -> Result<()> {
     let path = std::env::current_dir()?;
     let repo = Repository::new(&path, None)?;
 
@@ -122,7 +122,7 @@ fn main() {
     } else if args.cmd_validate {
         validate_handler()
     } else {
-        Err(io::Error::new(io::ErrorKind::InvalidInput, "Unknown command"))
+        from_str("Unknown command")
     };
 
     if let Err(err) = result {

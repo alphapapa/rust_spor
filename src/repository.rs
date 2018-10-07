@@ -7,11 +7,11 @@ use std::io;
 use std::path::{Path, PathBuf};
 
 use anchor::Anchor;
+use result::{from_str, Result};
 
 pub type AnchorId = String;
 
 fn new_anchor_id() -> AnchorId {
-    // TODO: Is there a more direct to_str() or something?
     format!("{}", uuid::Uuid::new_v4())
 }
 
@@ -165,28 +165,28 @@ impl RepositoryIterator {
 }
 
 impl Iterator for RepositoryIterator {
-    type Item = Result<(AnchorId, Anchor), String>;
+    type Item = Result<(AnchorId, Anchor)>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let glob_result = self.anchor_files.next()?;
         let anchor_path = match glob_result {
             Ok(p) => p,
-            Err(err) => return Some(Err(format!("{:?}", err)))
+            Err(err) => return Some(Err(err.into()))
         };
 
         let anchor_id = match anchor_path.file_stem() {
             Some(id) => id,
-            None => return Some(Err(format!("Unable to get file stem for {:?}", anchor_path)))
+            None => return Some(from_str(&format!("Unable to get file stem for {:?}", anchor_path)))
         };
 
         let anchor_id = match anchor_id.to_str() {
             Some(s) => String::from(s),
-            None => return Some(Err(format!("Error converting {:?} to string", anchor_id)))
+            None => return Some(from_str(&format!("Error converting {:?} to string", anchor_id)))
         };
 
         let anchor = match read_anchor(&anchor_path) {
             Ok(anchor) => anchor,
-            Err(err) => return Some(Err(format!("{:?}", err)))
+            Err(err) => return Some(from_str(&format!("{:?}", err)))
         };
 
         Some(Ok((anchor_id, anchor)))
@@ -194,24 +194,19 @@ impl Iterator for RepositoryIterator {
 }
 
 /// Initialize a spor repository in `path` if one doesn't already exist.
-pub fn initialize(path: &Path, spor_dir: Option<&Path>) -> io::Result<()> {
-    let spor_dir = match spor_dir {
-        None => Path::new(".spor"),
-        Some(d) => d
-    };
+pub fn initialize(path: &Path, spor_dir: Option<&Path>) -> Result<()> {
+    let spor_dir = spor_dir.unwrap_or(Path::new(".spor"));
 
     let spor_path = path.join(spor_dir);
 
     if spor_path.exists() {
-        return Err(
-            io::Error::new(
-                io::ErrorKind::AlreadyExists,
-                format!(
-                    "spor directory already exists: {}",
-                    spor_path.to_string_lossy())));
+        return from_str(&format!(
+            "spor directory already exists: {}",
+            spor_path.to_string_lossy()));
     }
 
     let mut builder = DirBuilder::new();
     builder.recursive(true);
     builder.create(spor_path)
+        .or_else(|e| Err(e.into()))
 }
