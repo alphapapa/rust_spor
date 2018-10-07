@@ -7,7 +7,7 @@ use std::io;
 use std::path::{Path, PathBuf};
 
 use anchor::Anchor;
-use result::{from_str, Result};
+use result::{Error, from_str, Result};
 
 pub type AnchorId = String;
 
@@ -49,49 +49,37 @@ fn read_anchor(anchor_path: &Path) -> io::Result<Anchor> {
 /// directory containing `spor_dir` is found, then that directory is returned.
 ///
 /// Returns: The dominating directory containing `spor_dir`.
-fn find_root_dir(path: &Path, spor_dir: &Path) -> io::Result<Option<PathBuf>> {
-    let p = PathBuf::from(path).canonicalize()?;
-
-    for ancestor in p.ancestors() {
-        let data_dir = ancestor.join(spor_dir);
-        if data_dir.exists() && data_dir.is_dir() {
-            return Ok(Some(ancestor.to_path_buf()));
-        }
-    }
-
-    Ok(None)
+fn find_root_dir(path: &Path, spor_dir: &Path) -> Option<PathBuf> {
+    PathBuf::from(path).canonicalize()
+        .ok()
+        .map(|p| {
+            p.ancestors().into_iter()
+                .map(|a| a.join(spor_dir))
+                .filter(|d| d.exists() && d.is_dir())
+                .next()
+            })       
+        .map(|p| p.unwrap())
 }
 
 impl Repository {
 
     /// Find the repository directory for the file `path` and return a
     /// `Repository` for it.
-    pub fn new(path: &Path, spor_dir: Option<&Path>) -> io::Result<Repository>
+    pub fn new(path: &Path, spor_dir: Option<&Path>) -> Result<Repository>
     {
-        let spor_dir = match spor_dir {
-            None => PathBuf::from(".spor"),
-            Some(dir) => PathBuf::from(dir)
-        };
+        let spor_dir = PathBuf::from(
+            spor_dir.unwrap_or(&PathBuf::from(".spor")));
 
-
-        let root = find_root_dir(path, &spor_dir)?;
-        let root = match root {
-            None => return Err(
-                io::Error::new(
-                    io::ErrorKind::NotFound,
-                    format!("spor repository not found for {:?}", path))),
-            Some(p) => p
-        };
-
-        let spor_dir = root.join(spor_dir);
-        assert!(spor_dir.exists(),
-                "spor-dir not found after find_root_dir succeeded!");
-
-        let repo = Repository {
-            root: root,
-            spor_dir: spor_dir
-        };
-        Ok(repo)
+        find_root_dir(path, &spor_dir)
+            .ok_or(Error::new(&format!("spor repository not found for {:?}", path)).into())
+            .map(|root_dir| root_dir.join(&spor_dir))
+            .map(|root_dir| {
+                assert!(spor_dir.exists(),
+                        "spor-dir not found after find_root_dir succeeded!");
+                Repository {
+                    root: root_dir,
+                    spor_dir: spor_dir
+                }})
     }
 
     pub fn add(&self,
