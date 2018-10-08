@@ -1,6 +1,8 @@
 #[macro_use]
 extern crate serde_derive;
+
 extern crate docopt;
+extern crate exit_code;
 extern crate serde_yaml;
 extern crate spor;
 
@@ -41,12 +43,14 @@ struct Args {
                                     * cmd_mine: bool */
 }
 
-fn init_handler() -> Result<()> {
-    let path = std::env::current_dir()?;
-    spor::repository::initialize(&path, None)
+fn init_handler() -> Result<i32> {
+    std::env::current_dir()
+        .map_err(|err| err.into())
+        .map(|path| spor::repository::initialize(&path, None))
+        .and(Ok(exit_code::SUCCESS))
 }
 
-fn add_handler(args: &Args) -> Result<()> {
+fn add_handler(args: &Args) -> Result<i32> {
     let path = std::env::current_dir()?;
     let repo = Repository::new(&path, None)?;
 
@@ -72,12 +76,12 @@ fn add_handler(args: &Args) -> Result<()> {
         args.arg_line_number,
         columns,
     ) {
-        Ok(_) => Ok(()),
+        Ok(_) => Ok(exit_code::SUCCESS),
         Err(err) => Err(err.into()),
     }
 }
 
-fn list_handler(args: &Args) -> Result<()> {
+fn list_handler(args: &Args) -> Result<i32> {
     let file = std::path::Path::new(&args.arg_source_file);
     let repo = Repository::new(file, None)?;
     for anchor in &repo {
@@ -86,14 +90,17 @@ fn list_handler(args: &Args) -> Result<()> {
         }
     }
 
-    Ok(())
+    Ok(exit_code::SUCCESS)
 }
 
-fn validate_handler() -> Result<()> {
+fn validate_handler() -> Result<i32> {
     let path = std::env::current_dir()?;
     let repo = Repository::new(&path, None)?;
 
+    let mut code = exit_code::SUCCESS;
+
     for r in validate(&repo) {
+        code = exit_code::FAILURE;
         match r {
             Err(err) => {
                 println!("{}", err);
@@ -108,7 +115,7 @@ fn validate_handler() -> Result<()> {
         }
     }
 
-    Ok(())
+    Ok(code)
 }
 
 fn main() {
@@ -128,7 +135,13 @@ fn main() {
         from_str("Unknown command")
     };
 
-    if let Err(err) = result {
-        println!("{}", err);
-    }
+    let code = match result {
+        Ok(code) => code,
+        Err(err) => {
+            println!("{}", err);
+            exit_code::FAILURE
+        }
+    };
+
+    std::process::exit(code)
 }

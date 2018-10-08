@@ -9,7 +9,7 @@ pub struct World {
     start_dir: PathBuf,
     repo_dir: PathBuf,
     _temp_dir: TempDir,
-    executable: PathBuf
+    executable: PathBuf,
 }
 
 impl cucumber_rust::World for World {}
@@ -19,8 +19,7 @@ impl std::default::Default for World {
         let dir = TempDir::new("spor_cucumber_tests")
             .expect("Unable to create temporary working directory");
 
-        let cwd = std::env::current_dir()
-            .expect("Unable to get current directory");
+        let cwd = std::env::current_dir().expect("Unable to get current directory");
 
         let world = World {
             // TODO:  This is kludgy. What's the correct way to find the spor executable?
@@ -117,6 +116,25 @@ mod example_steps {
             // TODO: Look for correct output, e.g. it contains filename, has the right line number, etc.
         };
 
+        then "the repository is valid" |world, _step| {
+            let status = Command::new(&world.executable)
+                .arg("validate")
+                .status()
+                .expect("failed to execute spor");
+
+            assert!(status.success());
+        };
+
+        then "the repository is invalid" |world, _step| {
+            let status = Command::new(&world.executable)
+                .arg("validate")
+                .status()
+                .expect("failed to execute spor");
+
+            assert!(!status.success());
+        };
+
+
     });
 }
 
@@ -131,9 +149,7 @@ after!(an_after_fn => |_scenario| {
 });
 
 // A setup function to be called before everything else
-fn setup() {
-
-}
+fn setup() {}
 
 cucumber! {
     features: "./features", // Path to our feature files
@@ -149,23 +165,6 @@ cucumber! {
         an_after_fn // Optional; called after each scenario
     ]
 }
-
-
-
-// @then("the repository is valid")
-// def check_repo_is_valid(step):
-//     subprocess.check_call(["spor", "validate"])
-
-
-// @then("the repository is invalid")
-// def check_repo_is_invalid(step):
-//     try:
-//         subprocess.check_call(["spor", "validate"])
-//         assert False, "validate should fail"
-//     except subprocess.CalledProcessError as exc:
-//         assert exc.returncode == 1
-//     });
-// }
 
 // import subprocess
 
