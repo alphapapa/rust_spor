@@ -21,9 +21,13 @@ impl std::default::Default for World {
 
         let cwd = std::env::current_dir().expect("Unable to get current directory");
 
+        let executable = std::env::current_exe().expect("Unable to get test executable")
+            .parent().expect("Unable to get executable directory")
+            .parent().expect("Unable to get parent of executable directory")
+            .join("spor");
+
         let world = World {
-            // TODO:  This is kludgy. What's the correct way to find the spor executable?
-            executable: cwd.join("target/debug/spor"),
+            executable: executable,
             start_dir: cwd,
             repo_dir: dir.path().to_path_buf(),
             _temp_dir: dir,
