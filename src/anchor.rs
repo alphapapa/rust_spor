@@ -7,13 +7,11 @@ use std::path::{Path, PathBuf};
 pub struct Context {
     pub before: Vec<String>,
     pub line: String,
-    pub after: Vec<String>
+    pub after: Vec<String>,
 }
 
 impl Context {
-    fn new(context_size: usize,
-           file_name: &Path,
-           line_number: usize) -> Result<Context> {
+    fn new(context_size: usize, file_name: &Path, line_number: usize) -> Result<Context> {
         let f = File::open(file_name)?;
         let mut reader = BufReader::new(f);
 
@@ -52,7 +50,7 @@ impl Context {
         let context = Context {
             before: before,
             line: line,
-            after: after
+            after: after,
         };
 
         Ok(context)
@@ -79,12 +77,14 @@ pub struct Anchor {
 }
 
 impl Anchor {
-    pub fn new(context_size: usize,
-               file_path: &Path,
-               line_number: usize,
-               metadata: serde_yaml::Value,
-               columns: Option<(usize, usize)>,
-               root: &Path) -> Result<Anchor> {
+    pub fn new(
+        context_size: usize,
+        file_path: &Path,
+        line_number: usize,
+        metadata: serde_yaml::Value,
+        columns: Option<(usize, usize)>,
+        root: &Path,
+    ) -> Result<Anchor> {
         let context = Context::new(context_size, &root.join(file_path), line_number)?;
 
         let anchor = Anchor {
@@ -92,7 +92,7 @@ impl Anchor {
             line_number: line_number,
             columns: columns,
             context: context,
-            metadata: metadata
+            metadata: metadata,
         };
 
         Ok(anchor)

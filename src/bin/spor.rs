@@ -1,7 +1,7 @@
 #[macro_use]
 extern crate serde_derive;
-extern crate serde_yaml;
 extern crate docopt;
+extern crate serde_yaml;
 extern crate spor;
 
 use docopt::Docopt;
@@ -52,7 +52,8 @@ fn add_handler(args: &Args) -> Result<()> {
 
     let columns = match args.arg_begin_offset {
         Some(begin_offset) => {
-            let end_offset = args.arg_end_offset
+            let end_offset = args
+                .arg_end_offset
                 .expect("Either both or neither of offsets must be set.");
             Some((begin_offset, end_offset))
         }
@@ -65,10 +66,12 @@ fn add_handler(args: &Args) -> Result<()> {
         Ok(metadata) => metadata,
     };
 
-    match repo.add(metadata,
-                   std::path::Path::new(&args.arg_source_file),
-                   args.arg_line_number,
-                   columns) {
+    match repo.add(
+        metadata,
+        std::path::Path::new(&args.arg_source_file),
+        args.arg_line_number,
+        columns,
+    ) {
         Ok(_) => Ok(()),
         Err(err) => Err(err.into()),
     }
