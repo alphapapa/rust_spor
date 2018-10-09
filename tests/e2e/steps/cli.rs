@@ -1,58 +1,12 @@
-#[macro_use]
 extern crate cucumber_rust;
-extern crate tempdir;
 
-use std::path::PathBuf;
-use tempdir::TempDir;
+use std::fs;
+use std::io::Write;
+use std::process::{Command, Stdio};
 
-pub struct World {
-    start_dir: PathBuf,
-    repo_dir: PathBuf,
-    _temp_dir: TempDir,
-    executable: PathBuf,
-}
+use super::super::world::World;
 
-impl cucumber_rust::World for World {}
-
-impl std::default::Default for World {
-    fn default() -> World {
-        let dir = TempDir::new("spor_cucumber_tests")
-            .expect("Unable to create temporary working directory");
-
-        let cwd = std::env::current_dir().expect("Unable to get current directory");
-
-        let executable = std::env::current_exe().expect("Unable to get test executable")
-            .parent().expect("Unable to get executable directory")
-            .parent().expect("Unable to get parent of executable directory")
-            .join("spor");
-
-        let world = World {
-            executable: executable,
-            start_dir: cwd,
-            repo_dir: dir.path().to_path_buf(),
-            _temp_dir: dir,
-        };
-
-        std::env::set_current_dir(&world.repo_dir)
-            .expect("Unable to switch to temp dir for testing");
-
-        world
-    }
-}
-
-impl std::ops::Drop for World {
-    fn drop(&mut self) {
-        std::env::set_current_dir(&self.start_dir)
-            .expect("Unable to switch back to starting directory after test");
-    }
-}
-
-mod example_steps {
-    use std::fs;
-    use std::io::Write;
-    use std::process::{Command, Stdio};
-
-    steps!(::World => {
+steps!(World => {
 
         given "I initialize a repository" |world, _step| {
             Command::new(&world.executable)
@@ -140,36 +94,3 @@ mod example_steps {
 
 
     });
-}
-
-// Declares a before handler function named `a_before_fn`
-before!(a_before_fn => |_scenario| {
-
-});
-
-// Declares an after handler function named `an_after_fn`
-after!(an_after_fn => |_scenario| {
-
-});
-
-// A setup function to be called before everything else
-fn setup() {}
-
-cucumber! {
-    features: "./features", // Path to our feature files
-    world: ::World, // The world needs to be the same for steps and the main cucumber call
-    steps: &[
-        example_steps::steps // the `steps!` macro creates a `steps` function in a module
-    ],
-    setup: setup, // Optional; called once before everything
-    before: &[
-        a_before_fn // Optional; called before each scenario
-    ],
-    after: &[
-        an_after_fn // Optional; called after each scenario
-    ]
-}
-
-// import subprocess
-
-// from radish import given, when, then

@@ -18,6 +18,7 @@ yaml-rust = "0.4"
 
 [[test]]
 name = "cucumber"
+path = "tests/e2e/cucumber.rs"
 harness = false
 
 [dev-dependencies]
