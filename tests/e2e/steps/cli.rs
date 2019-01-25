@@ -75,21 +75,23 @@ steps!(World => {
         };
 
         then "the repository is valid" |world, _step| {
-            let status = Command::new(&world.executable)
-                .arg("validate")
-                .status()
+            let output = Command::new(&world.executable)
+                .arg("status")
+                .output()
                 .expect("failed to execute spor");
-
-            assert!(status.success());
+            let output = String::from_utf8_lossy(&output.stdout);
+            let output: Vec<&str> = output.split("\n").filter(|s| !s.is_empty()).collect();
+            assert!(output.is_empty());
         };
 
         then "the repository is invalid" |world, _step| {
-            let status = Command::new(&world.executable)
-                .arg("validate")
-                .status()
+            let output = Command::new(&world.executable)
+                .arg("status")
+                .output()
                 .expect("failed to execute spor");
-
-            assert!(!status.success());
+            let output = String::from_utf8_lossy(&output.stdout);
+            let output: Vec<&str> = output.split("\n").filter(|s| !s.is_empty()).collect();
+            assert!(!output.is_empty());
         };
 
 

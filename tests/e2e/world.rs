@@ -28,7 +28,6 @@ impl std::default::Default for World {
             executable: executable,
             start_dir: cwd,
             repo_dir: dir.path().to_path_buf(),
-            temp_dir: dir,
         };
 
         std::env::set_current_dir(&world.repo_dir)

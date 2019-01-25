@@ -8,6 +8,7 @@ extern crate spor;
 
 use docopt::Docopt;
 use spor::anchor::Anchor;
+use spor::diff::get_anchor_diff;
 use spor::repository::Repository;
 use spor::result::{from_str, Result};
 
@@ -18,7 +19,7 @@ Usage:
   spor init
   spor add <source-file> <offset> <width> <context-width>
   spor list <source-file>
-  spor validate
+  spor status
 
 Options:
   -h --help     Show this screen.
@@ -30,7 +31,7 @@ struct Args {
     cmd_init: bool,
     cmd_add: bool,
     cmd_list: bool,
-    cmd_validate: bool,
+    cmd_status: bool,
     arg_source_file: String,
     arg_offset: u64,
     arg_width: u64,
@@ -61,10 +62,10 @@ fn add_handler(args: &Args) -> Result<i32> {
         args.arg_width,
         args.arg_context_width,
         metadata,
-        encoding)?;
+        encoding,
+    )?;
 
-    match repo.add(anchor)
-    {
+    match repo.add(anchor) {
         Ok(_) => Ok(exit_code::SUCCESS),
         Err(err) => Err(err.into()),
     }
@@ -82,6 +83,24 @@ fn list_handler(args: &Args) -> Result<i32> {
     Ok(exit_code::SUCCESS)
 }
 
+fn status_handler(_args: &Args) -> Result<i32> {
+    // TODO: Improve this output.
+
+    let file = std::path::Path::new(".");
+    let repo = Repository::new(file, None)?;
+    for anchor in &repo {
+        let (_, anchor) = anchor.unwrap();
+        let (changed, diffs) = get_anchor_diff(&anchor)?;
+        if changed {
+            for diff in diffs {
+                println!("{:?} {}", anchor.file_path, diff);
+            }
+        }
+    }
+
+    Ok(exit_code::SUCCESS)
+}
+
 fn main() {
     let args: Args = Docopt::new(USAGE)
         .and_then(|d| d.deserialize())
@@ -93,6 +112,8 @@ fn main() {
         add_handler(&args)
     } else if args.cmd_list {
         list_handler(&args)
+    } else if args.cmd_status {
+        status_handler(&args)
     } else {
         from_str("Unknown command")
     };

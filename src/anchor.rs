@@ -53,6 +53,10 @@ impl Context {
 
         Ok(context)
     }
+
+    pub fn full_text(self: &Context) -> String {
+        format!("{}{}{}", self.before, self.topic, self.after)
+    }
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -88,4 +92,5 @@ impl Anchor {
 
         Ok(anchor)
     }
+
 }
