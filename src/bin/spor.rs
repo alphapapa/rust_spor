@@ -7,16 +7,16 @@ extern crate serde_yaml;
 extern crate spor;
 
 use docopt::Docopt;
+use spor::anchor::Anchor;
 use spor::repository::Repository;
 use spor::result::{from_str, Result};
-use spor::validation::validate;
 
 const USAGE: &'static str = "
 spor
 
 Usage:
   spor init
-  spor add <source-file> <line-number> [<begin-offset> <end-offset>]
+  spor add <source-file> <offset> <width> <context-width>
   spor list <source-file>
   spor validate
 
@@ -32,15 +32,9 @@ struct Args {
     cmd_list: bool,
     cmd_validate: bool,
     arg_source_file: String,
-    arg_line_number: usize,
-    arg_begin_offset: Option<usize>,
-    arg_end_offset: Option<usize>, /* flag_speed: isize,
-                                    * flag_drifting: bool,
-                                    * arg_name: Vec<String>,
-                                    * arg_x: Option<i32>,
-                                    * arg_y: Option<i32>,
-                                    * cmd_ship: bool,
-                                    * cmd_mine: bool */
+    arg_offset: u64,
+    arg_width: u64,
+    arg_context_width: u64,
 }
 
 fn init_handler() -> Result<i32> {
@@ -54,28 +48,23 @@ fn add_handler(args: &Args) -> Result<i32> {
     let path = std::env::current_dir()?;
     let repo = Repository::new(&path, None)?;
 
-    let columns = match args.arg_begin_offset {
-        Some(begin_offset) => {
-            let end_offset = args
-                .arg_end_offset
-                .expect("Either both or neither of offsets must be set.");
-            Some((begin_offset, end_offset))
-        }
-        None => None,
-    };
-
     // TODO: Consider support for launching an editor when necessary.
     let metadata = match serde_yaml::from_reader(std::io::stdin()) {
         Err(err) => return Err(err.into()),
         Ok(metadata) => metadata,
     };
 
-    match repo.add(
-        metadata,
+    let encoding = "utf-8".to_string();
+    let anchor = Anchor::new(
         std::path::Path::new(&args.arg_source_file),
-        args.arg_line_number,
-        columns,
-    ) {
+        args.arg_offset,
+        args.arg_width,
+        args.arg_context_width,
+        metadata,
+        encoding)?;
+
+    match repo.add(anchor)
+    {
         Ok(_) => Ok(exit_code::SUCCESS),
         Err(err) => Err(err.into()),
     }
@@ -93,31 +82,6 @@ fn list_handler(args: &Args) -> Result<i32> {
     Ok(exit_code::SUCCESS)
 }
 
-fn validate_handler() -> Result<i32> {
-    let path = std::env::current_dir()?;
-    let repo = Repository::new(&path, None)?;
-
-    let mut code = exit_code::SUCCESS;
-
-    for r in validate(&repo) {
-        code = exit_code::FAILURE;
-        match r {
-            Err(err) => {
-                println!("{}", err);
-            }
-            Ok((id, path, diff)) => {
-                println!("==== {} ====", id);
-                println!("{}", path.to_str().expect("unable to print path"));
-                for line in diff {
-                    println!("{}", line);
-                }
-            }
-        }
-    }
-
-    Ok(code)
-}
-
 fn main() {
     let args: Args = Docopt::new(USAGE)
         .and_then(|d| d.deserialize())
@@ -129,8 +93,6 @@ fn main() {
         add_handler(&args)
     } else if args.cmd_list {
         list_handler(&args)
-    } else if args.cmd_validate {
-        validate_handler()
     } else {
         from_str("Unknown command")
     };

@@ -1,96 +1,87 @@
 use std::cmp::max;
 use std::fs::File;
-use std::io::{BufRead, BufReader, Result};
+use std::io::{BufReader, Error, ErrorKind, Read, Result, Seek, SeekFrom};
 use std::path::{Path, PathBuf};
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Context {
-    pub before: Vec<String>,
-    pub line: String,
-    pub after: Vec<String>,
+    pub before: String,
+    pub offset: u64,
+    pub topic: String,
+    pub after: String,
+    pub width: u64,
 }
 
 impl Context {
-    fn new(context_size: usize, file_name: &Path, line_number: usize) -> Result<Context> {
-        let f = File::open(file_name)?;
-        let mut reader = BufReader::new(f);
+    fn new(handle: &mut BufReader<std::fs::File>, 
+           offset: u64, 
+           width: u64, 
+           context_width: u64) -> Result<Context> {
+        // read topic
+        handle.seek(SeekFrom::Start(offset))?;
 
-        let mut buff = String::new();
+        let mut topic = String::new();
+        handle.take(width).read_to_string(&mut topic)?;
 
-        let begin_start = max(0, line_number - context_size);
-
-        // consume up to beginning of before
-        for _ in 0..begin_start {
-            reader.read_line(&mut buff)?;
+        if topic.len() < width as usize  {
+            return Err(Error::new(ErrorKind::InvalidInput, "Unable to read topic"))
         }
 
-        // read the context before
-        let mut before = vec![];
-        for _ in begin_start..line_number {
-            let mut buff = String::new();
-            reader.read_line(&mut buff)?;
-            before.push(buff);
+        // read before
+        let before_offset = max(0, offset - context_width);
+        let before_width = offset - before_offset;
+        handle.seek(SeekFrom::Start(before_offset))?;
+        let mut before = String::new();
+        handle.take(before_width).read_to_string(&mut before)?;
+        if before.len() < before_width as usize {
+            return Err(Error::new(ErrorKind::InvalidInput, "Unable to read before"))
         }
 
-        // read the line itself
-        let mut line = String::new();
-        reader.read_line(&mut line)?;
-
-        // Read the after
-        let mut after = vec![];
-        for _ in 0..context_size {
-            let mut buff = String::new();
-            let size = reader.read_line(&mut buff)?;
-            if size == 0 {
-                break;
-            }
-            after.push(buff);
-        }
+        // read after
+        let after_offset = offset + width;
+        handle.seek(SeekFrom::Start(after_offset))?;
+        let mut after = String::new();
+        handle.take(context_width).read_to_string(&mut after)?;
 
         let context = Context {
             before: before,
-            line: line,
+            offset: offset,
+            topic: topic,
             after: after,
+            width: context_width,
         };
 
         Ok(context)
     }
 }
 
-// struct Columns {
-//     start: usize,
-//     end: usize
-// }
-
-// impl Columns {
-//     fn new(&self, start: usize, end: usize) {
-//     }
-// }
-
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Anchor {
     pub file_path: PathBuf,
-    pub line_number: usize,
-    pub columns: Option<(usize, usize)>,
+    pub encoding: String,  // TODO: Is there some "encoding" type?
     pub context: Context,
     pub metadata: serde_yaml::Value,
 }
 
 impl Anchor {
     pub fn new(
-        context_size: usize,
         file_path: &Path,
-        line_number: usize,
+        offset: u64,
+        width: u64,
+        context_width: u64,
         metadata: serde_yaml::Value,
-        columns: Option<(usize, usize)>,
-        root: &Path,
+        encoding: String,
     ) -> Result<Anchor> {
-        let context = Context::new(context_size, &root.join(file_path), line_number)?;
+        // TODO: Assert file_path is absolute.
+
+        let f = File::open(file_path)?;
+        let mut handle = BufReader::new(f);
+
+        let context = Context::new(&mut handle, offset, width, context_width)?;
 
         let anchor = Anchor {
             file_path: PathBuf::from(file_path),
-            line_number: line_number,
-            columns: columns,
+            encoding: encoding,
             context: context,
             metadata: metadata,
         };

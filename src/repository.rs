@@ -18,7 +18,7 @@ fn new_anchor_id() -> AnchorId {
 #[derive(Debug)]
 pub struct Repository {
     pub root: PathBuf,
-    data_dir: PathBuf,
+    spor_dir: PathBuf,
 }
 
 fn write_anchor(anchor_path: &Path, anchor: &Anchor) -> io::Result<()> {
@@ -62,37 +62,32 @@ fn find_root_dir(path: &Path, spor_dir: &Path) -> Option<PathBuf> {
 impl Repository {
     /// Find the repository directory for the file `path` and return a
     /// `Repository` for it.
-    pub fn new(path: &Path, data_dir: Option<&Path>) -> Result<Repository> {
-        let data_dir = PathBuf::from(data_dir.unwrap_or(&PathBuf::from(".spor")));
+    pub fn new(path: &Path, spor_dir: Option<&Path>) -> Result<Repository> {
+        let spor_dir = PathBuf::from(spor_dir.unwrap_or(&PathBuf::from(".spor")));
 
-        find_root_dir(path, &data_dir)
+        find_root_dir(path, &spor_dir)
             .ok_or(Error::new(&format!("spor repository not found for {:?}", path)).into())
             .map(|root_dir| {
                 assert!(
-                    root_dir.join(&data_dir).exists(),
+                    root_dir.join(&spor_dir).exists(),
                     "spor-dir not found after find_root_dir succeeded!"
                 );
 
                 Repository {
                     root: root_dir,
-                    data_dir: data_dir,
+                    spor_dir: spor_dir,
                 }
             })
     }
 
     pub fn spor_dir(&self) -> PathBuf {
-        self.root.join(&self.data_dir)
+        self.root.join(&self.spor_dir)
     }
 
     pub fn add(
         &self,
-        metadata: serde_yaml::Value,
-        file_path: &Path,
-        line_number: usize,
-        columns: Option<(usize, usize)>,
+        anchor: Anchor,
     ) -> io::Result<AnchorId> {
-        let anchor = Anchor::new(3, file_path, line_number, metadata, columns, &self.root)?;
-
         let anchor_id = new_anchor_id();
         let anchor_path = self.anchor_path(&anchor_id);
 

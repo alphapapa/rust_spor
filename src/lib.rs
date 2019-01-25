@@ -6,4 +6,3 @@ pub mod anchor;
 pub mod repository;
 pub mod result;
 pub mod scoring;
-pub mod validation;

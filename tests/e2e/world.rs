@@ -7,7 +7,6 @@ use tempdir::TempDir;
 pub struct World {
     start_dir: PathBuf,
     pub repo_dir: PathBuf,
-    temp_dir: TempDir,
     pub executable: PathBuf,
 }
 
