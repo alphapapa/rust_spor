@@ -7,6 +7,7 @@ use tempdir::TempDir;
 pub struct World {
     start_dir: PathBuf,
     pub repo_dir: PathBuf,
+    pub temp_dir: TempDir,
     pub executable: PathBuf,
 }
 
@@ -28,6 +29,7 @@ impl std::default::Default for World {
             executable: executable,
             start_dir: cwd,
             repo_dir: dir.path().to_path_buf(),
+            temp_dir: dir,
         };
 
         std::env::set_current_dir(&world.repo_dir)
