@@ -39,11 +39,13 @@ steps!(World => {
             assert!(world.repo_dir.join(".spor").exists());
         };
 
-        when regex r"^I create a new anchor for (.+) at line (\d+)$" (String, usize) |world, filename, lineno, _step| {
+        when regex r"^I create a new anchor for (.+) at offset (\d+)$" (String, usize) |world, filename, offset, _step| {
             let mut cmd = Command::new(&world.executable)
                 .arg("add")
                 .arg(filename)
-                .arg(lineno.to_string())
+                .arg(offset.to_string())
+                .arg("5")
+                .arg("5")
                 .stdin(Stdio::piped())
                 .spawn()
                 .expect("failed to execute spor");
