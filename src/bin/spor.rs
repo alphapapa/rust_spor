@@ -92,8 +92,9 @@ fn status_handler(_args: &Args) -> Result<i32> {
         let (_, anchor) = anchor.unwrap();
         let (changed, diffs) = get_anchor_diff(&anchor)?;
         if changed {
+            println!("path: {:?}", anchor.file_path);
             for diff in diffs {
-                println!("{:?} {}", anchor.file_path, diff);
+                println!("\t{}", diff);
             }
         }
     }
