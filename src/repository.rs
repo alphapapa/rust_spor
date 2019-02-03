@@ -103,6 +103,24 @@ impl Repository {
         Ok(anchor_id)
     }
 
+    pub fn update(
+        &self,
+        anchor_id: AnchorId,
+        anchor: &Anchor
+    ) -> io::Result<()> {
+        let anchor_path = self.anchor_path(&anchor_id);
+        if !anchor_path.exists() {
+            return Err(io::Error::new(
+                io::ErrorKind::NotFound,
+                format!("{:?} does not exist", anchor_path)
+            ));
+        }
+
+        write_anchor(&anchor_path, &anchor)?;
+
+        Ok(())
+    }
+
     /// Absolute path to the data file for `anchor_id`.
     fn anchor_path(&self, anchor_id: &AnchorId) -> PathBuf {
         let file_name = format!("{}.yml", anchor_id);

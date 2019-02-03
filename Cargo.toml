@@ -1,6 +1,6 @@
 [package]
 name = "spor"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Austin Bingham <austin.bingham@gmail.com>"]
 
 [dependencies]

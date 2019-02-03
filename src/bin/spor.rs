@@ -11,6 +11,7 @@ use spor::anchor::Anchor;
 use spor::diff::get_anchor_diff;
 use spor::repository::Repository;
 use spor::result::{from_str, Result};
+use spor::updating::update;
 
 const USAGE: &'static str = "
 spor
@@ -20,6 +21,7 @@ Usage:
   spor add <source-file> <offset> <width> <context-width>
   spor list <source-file>
   spor status
+  spor update
 
 Options:
   -h --help     Show this screen.
@@ -32,6 +34,7 @@ struct Args {
     cmd_add: bool,
     cmd_list: bool,
     cmd_status: bool,
+    cmd_update: bool,
     arg_source_file: String,
     arg_offset: u64,
     arg_width: u64,
@@ -102,6 +105,18 @@ fn status_handler(_args: &Args) -> Result<i32> {
     Ok(exit_code::SUCCESS)
 }
 
+fn update_handler(_args: &Args) -> Result<i32> {
+    let file = std::path::Path::new(".");
+    let repo = Repository::new(file, None)?;
+    for anchor in &repo {
+        let (id, anchor) = anchor.unwrap();
+        let updated = update(&anchor)?;
+        repo.update(id, &updated)?;
+    }
+
+    Ok(exit_code::SUCCESS)
+}
+
 fn main() {
     let args: Args = Docopt::new(USAGE)
         .and_then(|d| d.deserialize())
@@ -115,6 +130,8 @@ fn main() {
         list_handler(&args)
     } else if args.cmd_status {
         status_handler(&args)
+    } else if args.cmd_update {
+        update_handler(&args)
     } else {
         from_str("Unknown command")
     };

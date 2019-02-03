@@ -7,3 +7,4 @@ pub mod diff;
 pub mod repository;
 pub mod result;
 pub mod scoring;
+pub mod updating;

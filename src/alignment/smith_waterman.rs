@@ -1,4 +1,3 @@
-extern crate ndarray;
 extern crate ordered_float;
 
 // TODO: Consider using the seal library for smith-waterman. Once we learn how to do it ourselves...
