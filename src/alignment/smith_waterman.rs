@@ -109,7 +109,6 @@ pub fn build_score_matrix(
         }
     }
 
-    println!("{:?}", traceback_matrix);
     (score_matrix, traceback_matrix)
 }
 
@@ -142,7 +141,6 @@ fn traceback_to_alignment(traceback: &Traceback) -> Result<Alignment, String> {
         right: traceback[0].1,
     });
 
-    println!("traceback: {:?}", traceback);
     // Now compare adjacent traceback entries to see how they changed.
     for ((curr_a, curr_b), (next_a, next_b)) in traceback.iter().zip(traceback.iter().skip(1)) {
         if *next_a == curr_a + 1 {
