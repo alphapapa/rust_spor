@@ -46,7 +46,7 @@ struct Args {
 fn init_handler() -> Result<i32> {
     std::env::current_dir()
         .map_err(Error::from)
-        .map(|path| spor::repository::initialize(&path, None))
+        .and_then(|path| spor::repository::initialize(&path, None)) 
         .and(Ok(exit_code::SUCCESS))
 }
 
@@ -70,10 +70,9 @@ fn add_handler(args: &Args) -> Result<i32> {
         encoding,
     )?;
 
-    match repo.add(anchor) {
-        Ok(_) => Ok(exit_code::SUCCESS),
-        Err(err) => Err(Error::from(err))
-    }
+    repo.add(anchor)
+        .map_err(Error::from)
+        .and(Ok(exit_code::SUCCESS))
 }
 
 fn list_handler(args: &Args) -> Result<i32> {

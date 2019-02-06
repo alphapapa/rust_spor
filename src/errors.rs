@@ -1,4 +1,5 @@
 use std::fmt;
+use std::error::Error as StdErr;
 use std::path::PathBuf;
 
 use failure::{Backtrace, Context, Fail};
@@ -23,6 +24,11 @@ impl Error {
         Error::from(ErrorKind::RepositoryExists(p))
     }
 
+    // Create error from IOError
+    pub(crate) fn io(err: &std::io::Error) -> Error {
+        Error::from(ErrorKind::Io(err.kind(), 
+                    err.description().to_string()))
+    }
     // Create an "other" error
     pub fn other<T: AsRef<str>>(msg: T) -> Error {
         Error::from(ErrorKind::Other(msg.as_ref().to_owned()))
@@ -66,7 +72,7 @@ pub enum ErrorKind {
     RepositoryExists(PathBuf),
 
     // IO error has occurred
-    Io,
+    Io(std::io::ErrorKind, String),
 
     // Some other kind of error has occurred
     Other(String),
@@ -98,8 +104,8 @@ impl fmt::Display for ErrorKind {
             ErrorKind::Other(ref msg) => {
                 write!(f, "{}", msg)
             }
-            ErrorKind::Io => {
-                write!(f, "I/O error")
+            ErrorKind::Io(ref kind, ref description) => {
+                write!(f, "I/O error: {:?} {}", kind, description)
             }
             ErrorKind::__Nonexhaustive => panic!("invalid error"),
         }
@@ -119,7 +125,7 @@ impl From<Context<ErrorKind>> for Error {
 }
 
 impl From<std::io::Error> for Error {
-    fn from(_err: std::io::Error) -> Error {
-        Error::from(ErrorKind::Io)
+    fn from(err: std::io::Error) -> Error {
+        Error::io(&err)
     }
 }

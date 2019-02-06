@@ -198,7 +198,7 @@ impl Iterator for RepositoryIterator {
 
         let anchor = match read_anchor(&anchor_path) {
             Ok(anchor) => anchor,
-            Err(err) => return Some(Err(Error::from(err)))
+            Err(err) => return Some(Err(Error::io(&err)))
         };
 
         Some(Ok((anchor_id, anchor)))
@@ -217,5 +217,5 @@ pub fn initialize(path: &Path, spor_dir: Option<&Path>) -> Result<()> {
 
     let mut builder = DirBuilder::new();
     builder.recursive(true);
-    builder.create(spor_path).or_else(|e| Err(Error::from(e)))
+    builder.create(spor_path).or_else(|e| Err(Error::io(&e)))
 }
