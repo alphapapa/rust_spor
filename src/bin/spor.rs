@@ -12,7 +12,7 @@ use docopt::Docopt;
 use spor::anchor::Anchor;
 use spor::diff::get_anchor_diff;
 use spor::errors::{Error, Result};
-use spor::repository::Repository;
+use spor::repository::{AnchorId, Repository};
 use spor::updating::update;
 
 const USAGE: &'static str = "
@@ -22,6 +22,7 @@ Usage:
   spor init
   spor add <source-file> <offset> <width> <context-width>
   spor list <source-file>
+  spor details <id>
   spor status
   spor update
 
@@ -37,10 +38,12 @@ struct Args {
     cmd_list: bool,
     cmd_status: bool,
     cmd_update: bool,
+    cmd_details: bool,
     arg_source_file: String,
     arg_offset: u64,
     arg_width: u64,
     arg_context_width: u64,
+    arg_id: String
 }
 
 fn init_handler() -> Result<i32> {
@@ -79,8 +82,8 @@ fn list_handler(args: &Args) -> Result<i32> {
     let file = std::path::Path::new(&args.arg_source_file);
     let repo = Repository::new(file, None)?;
     for anchor in &repo {
-        if let Ok((_id, a)) = anchor {
-            println!("{:?}", a);
+        if let Ok((id, a)) = anchor {
+            println!("{}\n{:?}", id, a);
         }
     }
 
@@ -118,6 +121,59 @@ fn update_handler(_args: &Args) -> Result<i32> {
     Ok(exit_code::SUCCESS)
 }
 
+fn get_anchor(repo: &Repository, id_prefix: &str) -> Result<(AnchorId, Anchor)> {
+    let mut prefixed: Vec<(AnchorId, Anchor)> = repo.into_iter()
+        .filter_map(Result::ok)
+        .filter(|(id, _anchor)| id.starts_with(id_prefix))
+        .collect();
+
+    if prefixed.len() > 1 {
+        return Err(Error::other("Ambigious ID specification"))
+    }
+
+    match prefixed.pop() {
+        Some(m) => Ok(m),
+        None => Err(Error::other("No anchor matching ID specification"))
+    }
+}
+
+fn details_handler(args: &Args) -> Result<i32> {
+    let file = std::path::Path::new(".");
+    let repo = Repository::new(file, None)?;
+
+    let (id, anchor) = get_anchor(&repo, &args.arg_id)?;
+
+    print!("id: {}
+path: {:?}
+encoding: {}
+
+[before]
+{}
+--------
+
+[topic]
+{}
+--------
+
+[after]
+{}
+--------
+
+offset: {}
+width: {}", 
+    id, 
+    anchor.file_path, 
+    anchor.encoding,
+    anchor.context.before,
+    anchor.context.topic,
+    anchor.context.after,
+    anchor.context.offset,
+    anchor.context.width,
+    );
+
+    Ok(exit_code::SUCCESS)
+}
+
 fn main() {
     let args: Args = Docopt::new(USAGE)
         .and_then(|d| d.deserialize())
@@ -133,6 +189,8 @@ fn main() {
         status_handler(&args)
     } else if args.cmd_update {
         update_handler(&args)
+    } else if args.cmd_details {
+        details_handler(&args)
     } else {
         Err(Error::other("Unknown command"))
     };
