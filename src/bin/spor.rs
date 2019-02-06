@@ -1,3 +1,5 @@
+extern crate failure; 
+
 #[macro_use]
 extern crate serde_derive;
 
@@ -9,8 +11,8 @@ extern crate spor;
 use docopt::Docopt;
 use spor::anchor::Anchor;
 use spor::diff::get_anchor_diff;
+use spor::errors::{Error, Result};
 use spor::repository::Repository;
-use spor::result::{from_str, Result};
 use spor::updating::update;
 
 const USAGE: &'static str = "
@@ -43,7 +45,7 @@ struct Args {
 
 fn init_handler() -> Result<i32> {
     std::env::current_dir()
-        .map_err(|err| err.into())
+        .map_err(Error::from)
         .map(|path| spor::repository::initialize(&path, None))
         .and(Ok(exit_code::SUCCESS))
 }
@@ -54,7 +56,7 @@ fn add_handler(args: &Args) -> Result<i32> {
 
     // TODO: Consider support for launching an editor when necessary.
     let metadata = match serde_yaml::from_reader(std::io::stdin()) {
-        Err(err) => return Err(err.into()),
+        Err(err) => return Err(Error::other(format!("{:?}", err))),
         Ok(metadata) => metadata,
     };
 
@@ -70,7 +72,7 @@ fn add_handler(args: &Args) -> Result<i32> {
 
     match repo.add(anchor) {
         Ok(_) => Ok(exit_code::SUCCESS),
-        Err(err) => Err(err.into()),
+        Err(err) => Err(Error::from(err))
     }
 }
 
@@ -133,7 +135,7 @@ fn main() {
     } else if args.cmd_update {
         update_handler(&args)
     } else {
-        from_str("Unknown command")
+        Err(Error::other("Unknown command"))
     };
 
     let code = match result {

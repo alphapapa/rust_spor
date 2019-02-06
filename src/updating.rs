@@ -3,7 +3,7 @@ use std::io::{BufReader, Read};
 
 use alignment::smith_waterman::{align, AlignmentCell};
 use anchor::Anchor;
-use result::{from_str, Result};
+use errors::{Error, ErrorKind, Result};
 use scoring::{gap_penalty, score_func};
 
 // Determines if an index is in the topic of an anchor
@@ -21,13 +21,9 @@ pub fn update(anchor: &Anchor) -> Result<Anchor> {
 
     let (_, alignments) = align(&ctxt.full_text(), &full_text, &score_func, &gap_penalty);
 
-    if alignments.is_empty() {
-        return from_str("No alignments found")
-    }
-
     let alignment = match alignments.first() {
         Some(a) => Ok(a),
-        None => from_str("No alignments found")
+        None => Err(Error::from(ErrorKind::NoAlignments))
     }?;
 
     let anchor_offset = (ctxt.offset as usize) - ctxt.before.len();
@@ -43,7 +39,7 @@ pub fn update(anchor: &Anchor) -> Result<Anchor> {
         ;
 
     if source_indices.is_empty() {
-        return from_str("Best alignment does map topic to updated source.")
+        return Err(Error::from(ErrorKind::InvalidAlignment))
     }
 
     let updated = Anchor::new(

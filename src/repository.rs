@@ -7,7 +7,7 @@ use std::io;
 use std::path::{Path, PathBuf};
 
 use anchor::Anchor;
-use result::{from_str, Error, Result};
+use errors::{Error, Result};
 
 pub type AnchorId = String;
 
@@ -25,7 +25,7 @@ fn write_anchor(anchor_path: &Path, anchor: &Anchor) -> io::Result<()> {
     let f = File::create(anchor_path)?;
     let writer = io::BufWriter::new(f);
     match serde_yaml::to_writer(writer, &anchor) {
-        Err(info) => return Err(io::Error::new(io::ErrorKind::InvalidData, info)),
+        Err(info) => Err(io::Error::new(io::ErrorKind::InvalidData, info)),
         Ok(s) => Ok(s),
     }
 }
@@ -66,7 +66,7 @@ impl Repository {
         let spor_dir = PathBuf::from(spor_dir.unwrap_or(&PathBuf::from(".spor")));
 
         find_root_dir(path, &spor_dir)
-            .ok_or(Error::new(&format!("spor repository not found for {:?}", path)).into())
+            .ok_or(Error::repository_not_found(path.to_path_buf()))
             .map(|root_dir| {
                 assert!(
                     root_dir.join(&spor_dir).exists(),
@@ -173,32 +173,32 @@ impl Iterator for RepositoryIterator {
         let glob_result = self.anchor_files.next()?;
         let anchor_path = match glob_result {
             Ok(p) => p,
-            Err(err) => return Some(Err(err.into())),
+            Err(err) => return Some(Err(Error::other(format!("{:}", err))))
         };
 
         let anchor_id = match anchor_path.file_stem() {
             Some(id) => id,
             None => {
-                return Some(from_str(&format!(
-                    "Unable to get file stem for {:?}",
-                    anchor_path
-                )))
+                return Some(Err(Error::other(
+                    format!(
+                        "Unable to get file stem for {:?}", 
+                        anchor_path))))
             }
         };
 
         let anchor_id = match anchor_id.to_str() {
             Some(s) => String::from(s),
             None => {
-                return Some(from_str(&format!(
-                    "Error converting {:?} to string",
-                    anchor_id
-                )))
+                return Some(Err(Error::other(
+                    format!(
+                        "Error converting {:?} to string", 
+                        anchor_id))))
             }
         };
 
         let anchor = match read_anchor(&anchor_path) {
             Ok(anchor) => anchor,
-            Err(err) => return Some(from_str(&format!("{:?}", err))),
+            Err(err) => return Some(Err(Error::from(err)))
         };
 
         Some(Ok((anchor_id, anchor)))
@@ -212,13 +212,10 @@ pub fn initialize(path: &Path, spor_dir: Option<&Path>) -> Result<()> {
     let spor_path = path.join(spor_dir);
 
     if spor_path.exists() {
-        return from_str(&format!(
-            "spor directory already exists: {}",
-            spor_path.to_string_lossy()
-        ));
+        return Err(Error::repository_exists(spor_path))
     }
 
     let mut builder = DirBuilder::new();
     builder.recursive(true);
-    builder.create(spor_path).or_else(|e| Err(e.into()))
+    builder.create(spor_path).or_else(|e| Err(Error::from(e)))
 }

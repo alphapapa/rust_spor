@@ -75,7 +75,7 @@ impl Anchor {
         context_width: u64,
         metadata: serde_yaml::Value,
         encoding: String,
-    ) -> Result<Anchor> {
+    ) -> std::io::Result<Anchor> {
         // TODO: Assert file_path is absolute.
 
         let f = File::open(file_path)?;
