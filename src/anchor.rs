@@ -13,18 +13,20 @@ pub struct Context {
 }
 
 impl Context {
-    fn new(handle: &mut BufReader<std::fs::File>, 
-           offset: u64, 
-           width: u64, 
-           context_width: u64) -> Result<Context> {
+    fn new(
+        handle: &mut BufReader<std::fs::File>,
+        offset: u64,
+        width: u64,
+        context_width: u64,
+    ) -> Result<Context> {
         // read topic
         handle.seek(SeekFrom::Start(offset))?;
 
         let mut topic = String::new();
         handle.take(width).read_to_string(&mut topic)?;
 
-        if topic.len() < width as usize  {
-            return Err(Error::new(ErrorKind::InvalidInput, "Unable to read topic"))
+        if topic.len() < width as usize {
+            return Err(Error::new(ErrorKind::InvalidInput, "Unable to read topic"));
         }
 
         // read before
@@ -34,7 +36,7 @@ impl Context {
         let mut before = String::new();
         handle.take(before_width).read_to_string(&mut before)?;
         if before.len() < before_width as usize {
-            return Err(Error::new(ErrorKind::InvalidInput, "Unable to read before"))
+            return Err(Error::new(ErrorKind::InvalidInput, "Unable to read before"));
         }
 
         // read after
@@ -62,7 +64,7 @@ impl Context {
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Anchor {
     pub file_path: PathBuf,
-    pub encoding: String,  // TODO: Is there some "encoding" type?
+    pub encoding: String, // TODO: Is there some "encoding" type?
     pub context: Context,
     pub metadata: serde_yaml::Value,
 }
@@ -92,5 +94,4 @@ impl Anchor {
 
         Ok(anchor)
     }
-
 }

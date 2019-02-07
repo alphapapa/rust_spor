@@ -8,10 +8,11 @@ extern crate exit_code;
 extern crate serde_yaml;
 extern crate spor;
 
+use std::path::PathBuf;
+
 use docopt::Docopt;
 use spor::anchor::Anchor;
 use spor::diff::get_anchor_diff;
-use spor::errors::{Error, Result};
 use spor::repository::{AnchorId, Repository};
 use spor::updating::update;
 
@@ -46,22 +47,32 @@ struct Args {
     arg_id: String
 }
 
-fn init_handler() -> Result<i32> {
-    std::env::current_dir()
-        .map_err(Error::from)
-        .and_then(|path| spor::repository::initialize(&path, None)) 
-        .and(Ok(exit_code::SUCCESS))
+type CommandResult = std::result::Result<(), i32>;
+
+fn init_handler() -> CommandResult {
+    let path = std::env::current_dir()
+        .map_err(|_| exit_code::OS_FILE_ERROR)?;
+
+    spor::repository::initialize(&path, None) 
+        .map_err(|_| exit_code::DATA_ERROR)?;
+
+    Ok(())
 }
 
-fn add_handler(args: &Args) -> Result<i32> {
-    let path = std::env::current_dir()?;
-    let repo = Repository::new(&path, None)?;
+fn open_repo(path: &PathBuf) -> std::result::Result<Repository, i32> {
+    Repository::new(&path, None)
+        .map_err(|_e| exit_code::OS_FILE_ERROR)
+}
+
+fn add_handler(args: &Args) -> CommandResult {
+    let path = std::env::current_dir()
+        .map_err(|_e| exit_code::OS_FILE_ERROR)?;
+
+    let repo = open_repo(&path)?;
 
     // TODO: Consider support for launching an editor when necessary.
-    let metadata = match serde_yaml::from_reader(std::io::stdin()) {
-        Err(err) => return Err(Error::other(format!("{:?}", err))),
-        Ok(metadata) => metadata,
-    };
+    let metadata = serde_yaml::from_reader(std::io::stdin())
+        .map_err(|_e| exit_code::DATA_ERROR)?;
 
     let encoding = "utf-8".to_string();
     let anchor = Anchor::new(
@@ -71,33 +82,31 @@ fn add_handler(args: &Args) -> Result<i32> {
         args.arg_context_width,
         metadata,
         encoding,
-    )?;
+    ).map_err(|_e| exit_code::DATA_ERROR)?;
 
-    repo.add(anchor)
-        .map_err(Error::from)
-        .and(Ok(exit_code::SUCCESS))
+    repo.add(anchor).map_err(|_e| exit_code::OS_FILE_ERROR)?;
+    Ok(())
 }
 
-fn list_handler(args: &Args) -> Result<i32> {
+fn list_handler(args: &Args) -> CommandResult {
     let file = std::path::Path::new(&args.arg_source_file);
-    let repo = Repository::new(file, None)?;
-    for anchor in &repo {
-        if let Ok((id, a)) = anchor {
-            println!("{}\n{:?}", id, a);
-        }
+    let repo = open_repo(&file.to_path_buf())?;
+    for (id, anchor) in &repo {
+        println!("{}\n{:?}", id, anchor);
     }
 
-    Ok(exit_code::SUCCESS)
+    Ok(())
 }
 
-fn status_handler(_args: &Args) -> Result<i32> {
+fn status_handler(_args: &Args) -> CommandResult {
     // TODO: Improve this output.
 
     let file = std::path::Path::new(".");
-    let repo = Repository::new(file, None)?;
-    for anchor in &repo {
-        let (_, anchor) = anchor.unwrap();
-        let (changed, diffs) = get_anchor_diff(&anchor)?;
+    let repo = open_repo(&file.to_path_buf())?;
+    for (_id, anchor) in &repo {
+        let (changed, diffs) = get_anchor_diff(&anchor)
+            .map_err(|_e| exit_code::OS_FILE_ERROR)?;
+
         if changed {
             println!("path: {:?}", anchor.file_path);
             for diff in diffs {
@@ -106,40 +115,52 @@ fn status_handler(_args: &Args) -> Result<i32> {
         }
     }
 
-    Ok(exit_code::SUCCESS)
+    Ok(())
 }
 
-fn update_handler(_args: &Args) -> Result<i32> {
+fn update_handler(_args: &Args) -> CommandResult {
     let file = std::path::Path::new(".");
-    let repo = Repository::new(file, None)?;
-    for anchor in &repo {
-        let (id, anchor) = anchor.unwrap();
-        let updated = update(&anchor)?;
-        repo.update(id, &updated)?;
-    }
 
-    Ok(exit_code::SUCCESS)
+    let repo = Repository::new(file, None)
+        .map_err(|_| exit_code::OS_FILE_ERROR)?;
+
+    for (id, anchor) in &repo {
+        let updated = update(&anchor)
+            .map_err(|e| {
+                println!("{:?}", e);
+                exit_code::DATA_ERROR})?;
+
+        repo.update(id, &updated)
+            .map_err(|e| {
+                println!("{:?}", e);
+                exit_code::OS_FILE_ERROR})?;
+    };
+
+    Ok(())
 }
 
-fn get_anchor(repo: &Repository, id_prefix: &str) -> Result<(AnchorId, Anchor)> {
+fn get_anchor(repo: &Repository, id_prefix: &str) -> std::result::Result<(AnchorId, Anchor), i32> {
     let mut prefixed: Vec<(AnchorId, Anchor)> = repo.into_iter()
-        .filter_map(Result::ok)
         .filter(|(id, _anchor)| id.starts_with(id_prefix))
         .collect();
 
     if prefixed.len() > 1 {
-        return Err(Error::other("Ambigious ID specification"))
+        println!("Ambiguous ID specification");
+        return Err(exit_code::DATA_ERROR)
     }
 
     match prefixed.pop() {
-        Some(m) => Ok(m),
-        None => Err(Error::other("No anchor matching ID specification"))
+        Some(m) => return Ok(m),
+        None => {
+            println!("No anchor matching ID specification");
+            return Err(exit_code::DATA_ERROR)
+        }
     }
 }
 
-fn details_handler(args: &Args) -> Result<i32> {
+fn details_handler(args: &Args) -> CommandResult {
     let file = std::path::Path::new(".");
-    let repo = Repository::new(file, None)?;
+    let repo = open_repo(&file.to_path_buf())?;
 
     let (id, anchor) = get_anchor(&repo, &args.arg_id)?;
 
@@ -171,7 +192,7 @@ width: {}",
     anchor.context.width,
     );
 
-    Ok(exit_code::SUCCESS)
+    Ok(())
 }
 
 fn main() {
@@ -180,28 +201,24 @@ fn main() {
         .unwrap_or_else(|e| e.exit());
 
     let result = if args.cmd_init {
-        init_handler()
-    } else if args.cmd_add {
-        add_handler(&args)
+        init_handler() 
     } else if args.cmd_list {
         list_handler(&args)
     } else if args.cmd_status {
         status_handler(&args)
+    } else if args.cmd_add {
+        add_handler(&args)
     } else if args.cmd_update {
         update_handler(&args)
     } else if args.cmd_details {
         details_handler(&args)
     } else {
-        Err(Error::other("Unknown command"))
+        Err(exit_code::FAILURE)
     };
 
-    let code = match result {
-        Ok(code) => code,
-        Err(err) => {
-            println!("{}", err);
-            exit_code::FAILURE
-        }
-    };
-
-    std::process::exit(code)
+    std::process::exit(
+        match result {
+            Ok(_) => exit_code::SUCCESS,
+            Err(code) => code
+        });
 }
