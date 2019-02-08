@@ -11,6 +11,7 @@ extern crate spor;
 use std::path::PathBuf;
 
 use docopt::Docopt;
+use spor::alignment::smith_waterman::align;
 use spor::anchor::Anchor;
 use spor::diff::get_anchor_diff;
 use spor::repository::{AnchorId, Repository};
@@ -125,7 +126,7 @@ fn update_handler(_args: &Args) -> CommandResult {
         .map_err(|_| exit_code::OS_FILE_ERROR)?;
 
     for (id, anchor) in &repo {
-        let updated = update(&anchor)
+        let updated = update(&anchor, &align)
             .map_err(|e| {
                 println!("{:?}", e);
                 exit_code::DATA_ERROR})?;

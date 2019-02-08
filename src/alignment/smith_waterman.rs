@@ -1,12 +1,12 @@
 extern crate ordered_float;
 
+use alignment::align::*;
+
 // TODO: Consider using the seal library for smith-waterman. Once we learn how to do it ourselves...
 
-type ScoringFunction = Fn(char, char) -> f32;
-type GapPenaltyFunction = Fn(u32) -> f32;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub enum Direction {
+enum Direction {
     Diag,
     Up,
     Left,
@@ -19,20 +19,12 @@ type TracebackMatrix = ndarray::Array2<Directions>;
 type Index = (ndarray::Ix, ndarray::Ix);
 type Traceback = Vec<Index>;
 
-#[derive(Debug, PartialEq)]
-pub enum AlignmentCell {
-    Both { left: usize, right: usize }, // no gap; indices for both strings
-    RightGap { left: usize },           // gap on right; index is for left string
-    LeftGap { right: usize },           // gap on left; index is for right string
-}
-type Alignment = Vec<AlignmentCell>;
-
 // Calculate the tracebacks for `traceback_matrix` starting at index `idx`.
 //
 // Note that tracebacks are in reverse. The first element in the traceback is
 // the "biggest" index in the traceback, and they work their way backward
 // through the strings being aligned.
-pub fn tracebacks(traceback_matrix: &TracebackMatrix, idx: Index) -> Vec<Traceback> {
+fn tracebacks(traceback_matrix: &TracebackMatrix, idx: Index) -> Vec<Traceback> {
     let directions = traceback_matrix.get(idx).expect("index is invalid");
     if directions.is_empty() {
         vec![vec![]]
@@ -61,7 +53,7 @@ pub fn tracebacks(traceback_matrix: &TracebackMatrix, idx: Index) -> Vec<Traceba
     }
 }
 
-pub fn build_score_matrix(
+fn build_score_matrix(
     a: &str,
     b: &str,
     score_func: &ScoringFunction,
@@ -168,28 +160,7 @@ fn traceback_to_alignment(traceback: &Traceback) -> Result<Alignment, String> {
     Result::Ok(alignment)
 }
 
-// Calculate the best alignments of sequences `a` and `b`.
-//
-// Arguments:
-//     a: The first of two sequences to align
-//     b: The second of two sequences to align
-//     score_func: A 2-ary callable which calculates the "match" score between
-//     two elements in the sequences.
-//     gap_penalty: A 1-ary callable which calculates the gap penalty for a gap
-//     of a given size.
-//
-// Returns: A (score, alignments) tuple. `score` is the score that all of the
-//     `alignments` received. `alignments` is an iterable of `((index, index), .
-//     . .)` tuples describing the best (i.e. maximal and equally good)
-//     alignments. The first index in each pair is an index into `a` and the
-//     second is into `b`. Either (but not both) indices in a pair may be `None`
-//     indicating a gap in the corresponding sequence.
-pub fn align(
-    a: &str,
-    b: &str,
-    score_func: &ScoringFunction,
-    gap_penalty: &GapPenaltyFunction,
-) -> (f32, Vec<Alignment>) {
+pub fn align(a: &str, b: &str, score_func: &ScoringFunction, gap_penalty: &GapPenaltyFunction) -> (f32, Vec<Alignment>) {
     let (score_matrix, tb_matrix) = build_score_matrix(a, b, score_func, gap_penalty);
     let max_score = score_matrix
         .iter()

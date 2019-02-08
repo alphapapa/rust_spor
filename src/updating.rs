@@ -3,12 +3,12 @@ use std::fs::File;
 use std::io::{BufReader, Read};
 
 
-use alignment::smith_waterman::{align, AlignmentCell};
+use alignment::align::{Align, AlignmentCell};
 use anchor::Anchor;
 use scoring::{gap_penalty, score_func};
 
 // Update an anchor based on the current contents of its source file.
-pub fn update(anchor: &Anchor) -> Result<Anchor, UpdateError> {
+pub fn update(anchor: &Anchor, align: &Align) -> Result<Anchor, UpdateError> {
     let f = File::open(&anchor.file_path)?;
     let ctxt = &anchor.context;
     let mut handle = BufReader::new(f);
