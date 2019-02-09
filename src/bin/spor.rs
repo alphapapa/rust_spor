@@ -73,25 +73,38 @@ fn open_repo(path: &PathBuf) -> std::result::Result<Repository, i32> {
 
 fn add_handler(args: &Args) -> CommandResult {
     let path = std::env::current_dir()
-        .map_err(|_e| exit_code::OS_FILE_ERROR)?;
+        .map_err(|e| {
+            println!("{:?}", e);
+            exit_code::OS_FILE_ERROR
+        })?;
 
     let repo = open_repo(&path)?;
 
     // TODO: Consider support for launching an editor when necessary.
     let metadata = serde_yaml::from_reader(std::io::stdin())
-        .map_err(|_e| exit_code::DATA_ERROR)?;
+        .map_err(|e| {
+            println!("{:?}", e);
+            exit_code::DATA_ERROR
+        })?;
 
     let encoding = "utf-8".to_string();
     let anchor = Anchor::new(
-        std::path::Path::new(&args.arg_source_file),
+        &repo.root.join(std::path::Path::new(&args.arg_source_file)),
         args.arg_offset,
         args.arg_width,
         args.arg_context_width,
         metadata,
         encoding,
-    ).map_err(|_e| exit_code::DATA_ERROR)?;
+    ).map_err(|e| {
+        println!("{:?}", e);
+        exit_code::DATA_ERROR
+    })?;
 
-    repo.add(anchor).map_err(|_e| exit_code::OS_FILE_ERROR)?;
+    repo.add(anchor).map_err(|e| {
+        println!("{:?}", e);
+        exit_code::OS_FILE_ERROR
+    })?;
+
     Ok(())
 }
 

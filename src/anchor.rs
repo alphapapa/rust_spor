@@ -78,7 +78,11 @@ impl Anchor {
         metadata: serde_yaml::Value,
         encoding: String,
     ) -> std::io::Result<Anchor> {
-        // TODO: Assert file_path is absolute.
+        if !file_path.is_absolute() {
+            return Err(Error::new(
+                ErrorKind::InvalidInput,
+                "Anchor file path's must be absolute"))
+        }
 
         let f = File::open(file_path)?;
         let mut handle = BufReader::new(f);
