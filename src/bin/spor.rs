@@ -25,6 +25,7 @@ Usage:
   spor add <source-file> <offset> <width> <context-width>
   spor list <source-file>
   spor details <id>
+  spor diff <anchor-id>
   spor status
   spor update
 
@@ -41,11 +42,13 @@ struct Args {
     cmd_status: bool,
     cmd_update: bool,
     cmd_details: bool,
+    cmd_diff: bool,
     arg_source_file: String,
     arg_offset: u64,
     arg_width: u64,
     arg_context_width: u64,
-    arg_id: String
+    arg_id: String,
+    arg_anchor_id: String,
 }
 
 type CommandResult = std::result::Result<(), i32>;
@@ -62,7 +65,10 @@ fn init_handler() -> CommandResult {
 
 fn open_repo(path: &PathBuf) -> std::result::Result<Repository, i32> {
     Repository::new(&path, None)
-        .map_err(|_e| exit_code::OS_FILE_ERROR)
+        .map_err(|e| {
+            println!("{:?}", e);
+            exit_code::OS_FILE_ERROR
+        })
 }
 
 fn add_handler(args: &Args) -> CommandResult {
@@ -93,27 +99,52 @@ fn list_handler(args: &Args) -> CommandResult {
     let file = std::path::Path::new(&args.arg_source_file);
     let repo = open_repo(&file.to_path_buf())?;
     for (id, anchor) in &repo {
-        println!("{}\n{:?}", id, anchor);
+        println!("{} {:?}:{} => {:?}",
+            id,
+            anchor.file_path,
+            anchor.context.offset,
+            anchor.metadata);
     }
 
     Ok(())
 }
 
 fn status_handler(_args: &Args) -> CommandResult {
-    // TODO: Improve this output.
-
     let file = std::path::Path::new(".");
     let repo = open_repo(&file.to_path_buf())?;
-    for (_id, anchor) in &repo {
-        let (changed, diffs) = get_anchor_diff(&anchor)
+
+    for (id, anchor) in &repo {
+        let diffs = get_anchor_diff(&anchor)
             .map_err(|_e| exit_code::OS_FILE_ERROR)?;
 
-        if changed {
-            println!("path: {:?}", anchor.file_path);
-            for diff in diffs {
-                println!("\t{}", diff);
-            }
+        if !diffs.is_empty() {
+            println!("{} {}:{} out-of-date", 
+                     id, 
+                     anchor.file_path.to_string_lossy(), 
+                     anchor.context.offset);
         }
+    }
+
+    Ok(())
+}
+
+fn diff_handler(args: &Args) -> CommandResult {
+    let file = std::path::Path::new(".");
+    let repo = open_repo(&file.to_path_buf())?;
+
+    let anchor = repo.get(&args.arg_anchor_id)
+        .or(Err(exit_code::OS_FILE_ERROR))
+        .map(|a| match a {
+            Some(anchor) => Ok(anchor),
+            None => Err(exit_code::OS_FILE_ERROR)
+        })
+        .unwrap_or(Err(exit_code::OS_FILE_ERROR))?;
+
+    let diff = get_anchor_diff(&anchor)
+        .map_err(|_| exit_code::OS_FILE_ERROR)?;
+
+    for line in diff {
+        println!("{}", line);
     }
 
     Ok(())
@@ -213,6 +244,8 @@ fn main() {
         update_handler(&args)
     } else if args.cmd_details {
         details_handler(&args)
+    } else if args.cmd_diff {
+        diff_handler(&args)
     } else {
         Err(exit_code::FAILURE)
     };

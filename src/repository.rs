@@ -27,8 +27,6 @@ impl Repository {
         let spor_dir = PathBuf::from(spor_dir.unwrap_or(&PathBuf::from(".spor")));
 
         find_root_dir(path, &spor_dir)
-            .ok_or(io::Error::new(io::ErrorKind::NotFound, 
-                                        "Spor directory not found"))
             .map(|root_dir| {
                 assert!(
                     root_dir.join(&spor_dir).exists(),
@@ -89,6 +87,21 @@ impl Repository {
         let path = self.spor_dir().join(file_name);
         assert!(path.is_absolute());
         path
+    }
+
+    pub fn get(&self, anchor_id: &AnchorId) -> io::Result<Option<Anchor>> {
+        let path = self.anchor_path(anchor_id);
+        match read_anchor(&path) {
+            Err(err) => {
+                match err.kind() {
+                    io::ErrorKind::NotFound => {
+                        Ok(None)
+                    }        
+                    _ => Err(err)
+                }
+            }
+            Ok(anchor) => Ok(Some(anchor))
+        }
     }
 
     // get by id
@@ -189,10 +202,9 @@ fn read_anchor(anchor_path: &Path) -> io::Result<Anchor> {
 /// directory containing `spor_dir` is found, then that directory is returned.
 ///
 /// Returns: The dominating directory containing `spor_dir`.
-fn find_root_dir(path: &Path, spor_dir: &Path) -> Option<PathBuf> {
+fn find_root_dir(path: &Path, spor_dir: &Path) -> io::Result<PathBuf> {
     PathBuf::from(path)
         .canonicalize()
-        .ok()
         .map(|p| {
             p.ancestors()
                 .into_iter()
