@@ -127,10 +127,11 @@ fn status_handler(_args: &Args) -> CommandResult {
     let repo = open_repo(&file.to_path_buf())?;
 
     for (id, anchor) in &repo {
-        let diffs = get_anchor_diff(&anchor)
+        let (changed, diffs) = get_anchor_diff(&anchor)
             .map_err(|_e| exit_code::OS_FILE_ERROR)?;
 
-        if !diffs.is_empty() {
+        if changed {
+            println!("{:?}", diffs);
             println!("{} {}:{} out-of-date", 
                      id, 
                      anchor.file_path().to_string_lossy(), 
@@ -153,7 +154,7 @@ fn diff_handler(args: &Args) -> CommandResult {
         })
         .unwrap_or(Err(exit_code::OS_FILE_ERROR))?;
 
-    let diff = get_anchor_diff(&anchor)
+    let (_changed, diff) = get_anchor_diff(&anchor)
         .map_err(|_| exit_code::OS_FILE_ERROR)?;
 
     for line in diff {

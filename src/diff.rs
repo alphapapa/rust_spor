@@ -2,7 +2,7 @@
 use anchor::Anchor;
 use std::io::Result;
 
-pub fn get_anchor_diff(anchor: &Anchor) -> Result<Vec<String>> {
+pub fn get_anchor_diff(anchor: &Anchor) -> Result<(bool, Vec<String>)> {
     let new_anchor = Anchor::new(
         &anchor.file_path(),
         anchor.context().offset(),
@@ -33,5 +33,5 @@ pub fn get_anchor_diff(anchor: &Anchor) -> Result<Vec<String>> {
         diff_strings.push(diff_text);
     }
 
-    Ok(diff_strings)
+    Ok((changed, diff_strings))
 }
