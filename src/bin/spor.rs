@@ -114,9 +114,9 @@ fn list_handler(args: &Args) -> CommandResult {
     for (id, anchor) in &repo {
         println!("{} {:?}:{} => {:?}",
             id,
-            anchor.file_path,
-            anchor.context.offset,
-            anchor.metadata);
+            anchor.file_path(),
+            anchor.context().offset(),
+            anchor.metadata());
     }
 
     Ok(())
@@ -133,8 +133,8 @@ fn status_handler(_args: &Args) -> CommandResult {
         if !diffs.is_empty() {
             println!("{} {}:{} out-of-date", 
                      id, 
-                     anchor.file_path.to_string_lossy(), 
-                     anchor.context.offset);
+                     anchor.file_path().to_string_lossy(), 
+                     anchor.context().offset());
         }
     }
 
@@ -228,13 +228,13 @@ encoding: {}
 offset: {}
 width: {}", 
     id, 
-    anchor.file_path, 
-    anchor.encoding,
-    anchor.context.before,
-    anchor.context.topic,
-    anchor.context.after,
-    anchor.context.offset,
-    anchor.context.width,
+    anchor.file_path(), 
+    anchor.encoding(),
+    anchor.context().before(),
+    anchor.context().topic(),
+    anchor.context().after(),
+    anchor.context().offset(),
+    anchor.context().width(),
     );
 
     Ok(())

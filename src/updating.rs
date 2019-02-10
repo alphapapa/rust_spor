@@ -9,8 +9,8 @@ use scoring::{gap_penalty, score_func};
 
 // Update an anchor based on the current contents of its source file.
 pub fn update(anchor: &Anchor, align: &Align) -> Result<Anchor, UpdateError> {
-    let f = File::open(&anchor.file_path)?;
-    let ctxt = &anchor.context;
+    let f = File::open(anchor.file_path())?;
+    let ctxt = anchor.context();
     let mut handle = BufReader::new(f);
     let mut full_text = String::new();
     handle.read_to_string(&mut full_text)?;
@@ -22,7 +22,7 @@ pub fn update(anchor: &Anchor, align: &Align) -> Result<Anchor, UpdateError> {
         None => Err(UpdateError::NoAlignments)
     }?;
 
-    let anchor_offset = (ctxt.offset as usize) - ctxt.before.len();
+    let anchor_offset = (ctxt.offset() as usize) - ctxt.before().len();
 
     let source_indices: Vec<usize> = alignment
         .into_iter()
@@ -39,12 +39,12 @@ pub fn update(anchor: &Anchor, align: &Align) -> Result<Anchor, UpdateError> {
     }
 
     let updated = Anchor::new(
-        &anchor.file_path,
+        anchor.file_path(),
         source_indices[0] as u64,
         source_indices.len() as u64,
-        anchor.context.width,
-        anchor.metadata.clone(),
-        anchor.encoding.clone(),
+        anchor.context().width(),
+        anchor.metadata().clone(),
+        anchor.encoding().clone(),
     )?;
 
     Ok(updated)
@@ -69,6 +69,6 @@ impl From<std::io::Error> for UpdateError {
 
 // Determines if an index is in the topic of an anchor
 fn index_in_topic(index: usize, anchor: &Anchor) -> bool {
-    (index >= anchor.context.offset as usize)
-        && (index < anchor.context.offset as usize + anchor.context.topic.len())
+    (index >= anchor.context().offset() as usize)
+        && (index < anchor.context().offset() as usize + anchor.context().topic().len())
 }

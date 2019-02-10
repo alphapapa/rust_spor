@@ -5,11 +5,11 @@ use std::path::{Path, PathBuf};
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Context {
-    pub before: String,
-    pub offset: u64,
-    pub topic: String,
-    pub after: String,
-    pub width: u64,
+    before: String,
+    offset: u64,
+    topic: String,
+    after: String,
+    width: u64,
 }
 
 impl Context {
@@ -56,6 +56,26 @@ impl Context {
         Ok(context)
     }
 
+    pub fn before(&self) -> &String {
+        &self.before
+    }
+
+    pub fn offset(&self) -> u64 {
+        self.offset
+    }
+
+    pub fn topic(&self) -> &String {
+        &self.topic
+    }
+
+    pub fn after(&self) -> &String {
+        &self.after
+    }
+
+    pub fn width(&self) -> u64 {
+        self.width
+    }
+
     pub fn full_text(self: &Context) -> String {
         format!("{}{}{}", self.before, self.topic, self.after)
     }
@@ -63,10 +83,10 @@ impl Context {
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Anchor {
-    pub file_path: PathBuf,
-    pub encoding: String, // TODO: Is there some "encoding" type?
-    pub context: Context,
-    pub metadata: serde_yaml::Value,
+    file_path: PathBuf,
+    encoding: String, // TODO: Is there some "encoding" type?
+    context: Context,
+    metadata: serde_yaml::Value,
 }
 
 impl Anchor {
@@ -97,5 +117,21 @@ impl Anchor {
         };
 
         Ok(anchor)
+    }
+
+    pub fn file_path(&self) -> &PathBuf {
+        return &self.file_path;
+    }
+
+    pub fn encoding(&self) -> &String {
+        return &self.encoding;
+    }
+
+    pub fn context(&self) -> &Context {
+        return &self.context;
+    }
+    
+    pub fn metadata(&self) -> &serde_yaml::Value {
+        return &self.metadata;
     }
 }
