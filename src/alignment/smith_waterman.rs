@@ -2,9 +2,6 @@ extern crate ordered_float;
 
 use alignment::align::*;
 
-// TODO: Consider using the seal library for smith-waterman. Once we learn how to do it ourselves...
-
-
 #[derive(Clone, Copy, Debug, PartialEq)]
 enum Direction {
     Diag,

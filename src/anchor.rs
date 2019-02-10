@@ -84,7 +84,7 @@ impl Context {
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Anchor {
     file_path: PathBuf,
-    encoding: String, // TODO: Is there some "encoding" type?
+    encoding: String,
     context: Context,
     metadata: serde_yaml::Value,
 }

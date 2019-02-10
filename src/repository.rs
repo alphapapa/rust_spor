@@ -128,7 +128,6 @@ impl RepositoryIterator {
     fn new(spor_dir: &PathBuf) -> RepositoryIterator {
         let glob_path = spor_dir.join("**/*.yml");
 
-        // TODO: Probably shouldn't be using expect. Clean up the API.
         let pattern = glob_path
             .to_str()
             .expect(format!("Unable to stringify path {:?}. Invalid utf-8?", glob_path).as_str());
@@ -179,8 +178,6 @@ pub fn initialize(path: &Path, spor_dir: Option<&Path>) -> io::Result<()> {
 }
 
 fn write_anchor(anchor_path: &Path, anchor: &Anchor) -> io::Result<()> {
-    // TODO: Anchors have absolute paths, but this needs to save them with paths relative to the repo root
-    // so that they're portable.
     let f = File::create(anchor_path)?;
     let writer = io::BufWriter::new(f);
     match serde_yaml::to_writer(writer, &anchor) {
@@ -190,9 +187,6 @@ fn write_anchor(anchor_path: &Path, anchor: &Anchor) -> io::Result<()> {
 }
 
 fn read_anchor(anchor_path: &Path) -> io::Result<Anchor> {
-    // TODO: Stored anchors have relative paths (relative to the repo root). But anchors need to have
-    // absolute paths when used by the rest of the program. This functions needs to prepend the repo
-    // root to the anchor path before returning (and, in fact, before returning it).
     let f = File::open(anchor_path)?;
     let reader = io::BufReader::new(f);
     match serde_yaml::from_reader(reader) {

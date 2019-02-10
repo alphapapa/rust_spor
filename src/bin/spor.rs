@@ -80,7 +80,6 @@ fn add_handler(args: &Args) -> CommandResult {
 
     let repo = open_repo(&path)?;
 
-    // TODO: Consider support for launching an editor when necessary.
     let metadata = serde_yaml::from_reader(std::io::stdin())
         .map_err(|e| {
             println!("{:?}", e);
