@@ -1,4 +1,4 @@
-|Python version| |Build Status|
+|Build Status|
 
 ======
  spor
