@@ -12,7 +12,7 @@ use std::path::PathBuf;
 
 use docopt::Docopt;
 use spor::alignment::smith_waterman::align;
-use spor::anchor::Anchor;
+use spor::anchor::{Anchor, Context};
 use spor::diff::get_anchor_diff;
 use spor::repository::{AnchorId, Repository};
 use spor::updating::update;
@@ -87,13 +87,20 @@ fn add_handler(args: &Args) -> CommandResult {
         })?;
 
     let encoding = "utf-8".to_string();
-    let anchor = Anchor::new(
+
+    let anchor = Context::new(
         &repo.root.join(std::path::Path::new(&args.arg_source_file)),
         args.arg_offset,
         args.arg_width,
         args.arg_context_width,
-        metadata,
-        encoding,
+    )
+    .and_then(|c| {
+        Anchor::new(
+            &repo.root.join(std::path::Path::new(&args.arg_source_file)),
+            c,
+            metadata,
+            encoding,
+        )}
     ).map_err(|e| {
         println!("{:?}", e);
         exit_code::DATA_ERROR

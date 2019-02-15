@@ -1,13 +1,17 @@
 
-use anchor::Anchor;
+use anchor::{Anchor, Context};
 use std::io::Result;
 
 pub fn get_anchor_diff(anchor: &Anchor) -> Result<(bool, Vec<String>)> {
-    let new_anchor = Anchor::new(
-        &anchor.file_path(),
+    let context = Context::new(
+        anchor.file_path(),
         anchor.context().offset(),
         anchor.context().topic().len() as u64,
-        anchor.context().width(),
+        anchor.context().width())?;
+
+    let new_anchor = Anchor::new(
+        anchor.file_path(),
+        context,
         anchor.metadata().clone(),
         anchor.encoding().clone(),
     )?;

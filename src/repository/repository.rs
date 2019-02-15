@@ -1,12 +1,14 @@
 extern crate glob;
+extern crate serde;
 extern crate serde_yaml;
 extern crate uuid;
 
-use std::fs::{DirBuilder, File};
+use std::fs::DirBuilder;
 use std::io;
 use std::path::{Path, PathBuf};
 
 use anchor::Anchor;
+use super::serialization::{read_anchor, write_anchor};
 
 pub type AnchorId = String;
 
@@ -58,7 +60,7 @@ impl Repository {
             ));
         }
 
-        write_anchor(&anchor_path, &anchor)?;
+        write_anchor(&anchor_path, &anchor, &self.root)?;
 
         Ok(anchor_id)
     }
@@ -76,7 +78,7 @@ impl Repository {
             ));
         }
 
-        write_anchor(&anchor_path, &anchor)?;
+        write_anchor(&anchor_path, &anchor, &self.root)?;
 
         Ok(())
     }
@@ -91,7 +93,7 @@ impl Repository {
 
     pub fn get(&self, anchor_id: &AnchorId) -> io::Result<Option<Anchor>> {
         let path = self.anchor_path(anchor_id);
-        match read_anchor(&path) {
+        match read_anchor(&path, &self.root) {
             Err(err) => {
                 match err.kind() {
                     io::ErrorKind::NotFound => {
@@ -111,55 +113,7 @@ impl Repository {
     // items
 }
 
-impl<'a> IntoIterator for &'a Repository {
-    type Item = <RepositoryIterator as Iterator>::Item;
-    type IntoIter = RepositoryIterator;
 
-    fn into_iter(self) -> Self::IntoIter {
-        RepositoryIterator::new(&self.spor_dir())
-    }
-}
-
-pub struct RepositoryIterator {
-    anchor_files: Vec<(AnchorId, PathBuf)>
-}
-
-impl RepositoryIterator {
-    fn new(spor_dir: &PathBuf) -> RepositoryIterator {
-        let glob_path = spor_dir.join("**/*.yml");
-
-        let pattern = glob_path
-            .to_str()
-            .expect(format!("Unable to stringify path {:?}. Invalid utf-8?", glob_path).as_str());
-
-        let matches = glob::glob(pattern).expect("Unexpected glob failure.")
-            .filter_map(Result::ok)
-            .map(|anchor_path| anchor_path.file_stem()
-                                .and_then(|id| id.to_str())
-                                .ok_or(())
-                                .map(|id| (id.to_owned(), anchor_path.clone())))
-            .filter_map(Result::ok)
-            .collect();
-
-        RepositoryIterator {
-            anchor_files: matches,
-        }
-    }
-}
-
-impl Iterator for RepositoryIterator {
-    type Item = (AnchorId, Anchor);
-
-    fn next(&mut self) -> Option<Self::Item> {
-        loop {
-            let (anchor_id, anchor_path) = self.anchor_files.pop()?;
-            match read_anchor(&anchor_path) {
-                Ok(anchor) => return Some((anchor_id, anchor)),
-                _ => ()
-            };
-        }
-    }
-}
 
 /// Initialize a spor repository in `path` if one doesn't already exist.
 pub fn initialize(path: &Path, spor_dir: Option<&Path>) -> io::Result<()> {
@@ -174,24 +128,6 @@ pub fn initialize(path: &Path, spor_dir: Option<&Path>) -> io::Result<()> {
         let mut builder = DirBuilder::new();
         builder.recursive(true);
         builder.create(spor_path)
-    }
-}
-
-fn write_anchor(anchor_path: &Path, anchor: &Anchor) -> io::Result<()> {
-    let f = File::create(anchor_path)?;
-    let writer = io::BufWriter::new(f);
-    match serde_yaml::to_writer(writer, &anchor) {
-        Err(info) => Err(io::Error::new(io::ErrorKind::InvalidData, info)),
-        Ok(s) => Ok(s),
-    }
-}
-
-fn read_anchor(anchor_path: &Path) -> io::Result<Anchor> {
-    let f = File::open(anchor_path)?;
-    let reader = io::BufReader::new(f);
-    match serde_yaml::from_reader(reader) {
-        Err(info) => return Err(io::Error::new(io::ErrorKind::InvalidData, info)),
-        Ok(a) => Ok(a),
     }
 }
 

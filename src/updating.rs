@@ -4,7 +4,7 @@ use std::io::{BufReader, Read};
 
 
 use alignment::align::{Align, AlignmentCell};
-use anchor::Anchor;
+use anchor::{Anchor, Context};
 use scoring::{gap_penalty, score_func};
 
 // Update an anchor based on the current contents of its source file.
@@ -38,11 +38,16 @@ pub fn update(anchor: &Anchor, align: &Align) -> Result<Anchor, UpdateError> {
         return Err(UpdateError::InvalidAlignment)
     }
 
+    let context = Context::new(
+        anchor.file_path(),
+        anchor.context().offset(),
+        anchor.context().topic().len() as u64,
+        anchor.context().width()
+    )?;
+
     let updated = Anchor::new(
         anchor.file_path(),
-        source_indices[0] as u64,
-        source_indices.len() as u64,
-        anchor.context().width(),
+        context,
         anchor.metadata().clone(),
         anchor.encoding().clone(),
     )?;

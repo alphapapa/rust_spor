@@ -13,12 +13,15 @@ pub struct Context {
 }
 
 impl Context {
-    fn new(
-        handle: &mut BufReader<std::fs::File>,
+    pub fn new(
+        file_path: &Path,
         offset: u64,
         width: u64,
         context_width: u64,
     ) -> Result<Context> {
+        let f = File::open(file_path)?;
+        let handle = &mut BufReader::new(f);
+
         // read topic
         handle.seek(SeekFrom::Start(offset))?;
 
@@ -92,9 +95,7 @@ pub struct Anchor {
 impl Anchor {
     pub fn new(
         file_path: &Path,
-        offset: u64,
-        width: u64,
-        context_width: u64,
+        context: Context,
         metadata: serde_yaml::Value,
         encoding: String,
     ) -> std::io::Result<Anchor> {
@@ -103,11 +104,6 @@ impl Anchor {
                 ErrorKind::InvalidInput,
                 "Anchor file path's must be absolute"))
         }
-
-        let f = File::open(file_path)?;
-        let mut handle = BufReader::new(f);
-
-        let context = Context::new(&mut handle, offset, width, context_width)?;
 
         let anchor = Anchor {
             file_path: PathBuf::from(file_path),
