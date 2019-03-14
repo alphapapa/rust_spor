@@ -34,14 +34,15 @@ pub fn update(anchor: &Anchor, align: &Align) -> Result<Anchor, UpdateError> {
         .map(|(_, s_idx)| *s_idx)
         .collect();
 
-    if source_indices.is_empty() {
-        return Err(UpdateError::InvalidAlignment)
-    }
+    let new_topic_offset = match source_indices.first() {
+        Some(index) => Ok(index),
+        None => Err(UpdateError::InvalidAlignment)
+    }?;
 
     let context = Context::new(
         anchor.file_path(),
-        anchor.context().offset(),
-        anchor.context().topic().len() as u64,
+        *new_topic_offset as u64,
+        source_indices.len() as u64,
         anchor.context().width()
     )?;
 
