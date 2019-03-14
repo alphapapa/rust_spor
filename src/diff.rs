@@ -3,7 +3,9 @@ use anchor::{Anchor, Context};
 use std::io::Result;
 
 pub fn get_anchor_diff(anchor: &Anchor) -> Result<(bool, Vec<String>)> {
-    let context = Context::new(
+
+
+    let context = Context::from_path(
         anchor.file_path(),
         anchor.context().offset(),
         anchor.context().topic().len() as u64,

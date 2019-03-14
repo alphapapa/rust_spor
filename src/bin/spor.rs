@@ -87,7 +87,7 @@ fn add_handler(args: &Args) -> CommandResult {
 
     let encoding = "utf-8".to_string();
 
-    let anchor = Context::new(
+    let anchor = Context::from_path(
         &repo.root.join(std::path::Path::new(&args.arg_source_file)),
         args.arg_offset,
         args.arg_width,
