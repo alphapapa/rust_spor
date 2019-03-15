@@ -12,6 +12,7 @@ extern crate serde_yaml;
 extern crate simple_logger;
 extern crate spor;
 
+use std::iter::FromIterator;
 use std::path::PathBuf;
 
 use docopt::Docopt;
@@ -212,34 +213,32 @@ fn details_handler(args: &Args) -> CommandResult {
 
     let (id, anchor) = get_anchor(&repo, &args.arg_id)?;
 
+    let prefix_lines = |prefix, text: &str| {
+        let lines = text.lines().map(|l| format!("{}{}", prefix, l));
+        Vec::from_iter(lines).join("\n") 
+    };
+
+    let before = prefix_lines("B> ", anchor.context().before());
+    let topic = prefix_lines("T> ", anchor.context().topic());
+    let after = prefix_lines("A> ", anchor.context().after());
+
     print!(
         "id: {}
 path: {:?}
 encoding: {}
-
-[before]
-{}
---------
-
-[topic]
-{}
---------
-
-[after]
-{}
---------
-
 offset: {}
-width: {}",
+width: {}
+
+{}
+{}
+{}
+",
         id,
         anchor.file_path(),
         anchor.encoding(),
-        anchor.context().before(),
-        anchor.context().topic(),
-        anchor.context().after(),
         anchor.context().offset(),
         anchor.context().width(),
-    );
+        before, topic, after);
 
     Ok(())
 }
