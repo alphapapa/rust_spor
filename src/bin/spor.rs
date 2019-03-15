@@ -135,10 +135,9 @@ fn status_handler(_args: &Args) -> CommandResult {
     let repo = open_repo(&file.to_path_buf())?;
 
     for (id, anchor) in &repo {
-        let (changed, diffs) = get_anchor_diff(&anchor).map_err(|_e| exit_code::OS_FILE_ERROR)?;
+        let (changed, _diffs) = get_anchor_diff(&anchor).map_err(|_e| exit_code::OS_FILE_ERROR)?;
 
         if changed {
-            println!("{:?}", diffs);
             println!(
                 "{} {}:{} out-of-date",
                 id,
