@@ -1,3 +1,5 @@
+extern crate serde_yaml;
+
 use std::io;
 use std::fs::File;
 use std::path::{Path, PathBuf};
