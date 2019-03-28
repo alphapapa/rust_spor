@@ -55,7 +55,7 @@ this metadata by using the ``list`` command::
   $ spor list example.py
   example.py:32 => {'meta': 'data'}
 
-The metadata can be any valid JSON. spor doesn't look at the data at all, so
+The metadata can be any valid YAML. spor doesn't look at the data at all, so
 it's entirely up to you to decide what goes there.
 
 Motivation
