@@ -158,7 +158,12 @@ fn traceback_to_alignment(traceback: &Traceback) -> Result<Alignment, String> {
     Result::Ok(alignment)
 }
 
-pub fn align(a: &str, b: &str, score_func: &ScoringFunction, gap_penalty: &GapPenaltyFunction) -> (f32, Vec<Alignment>) {
+pub fn align(
+    a: &str,
+    b: &str,
+    score_func: &ScoringFunction,
+    gap_penalty: &GapPenaltyFunction,
+) -> (f32, Vec<Alignment>) {
     let (score_matrix, tb_matrix) = build_score_matrix(a, b, score_func, gap_penalty);
     let max_score = score_matrix
         .iter()
@@ -221,10 +226,12 @@ mod tests {
                 3, 1, 6, 4, 2, 0, 1, 4, 0, 3, 1, 4, 9, 7, 5, 3, 2, 0, 1, 6, 4, 7, 6, 4, 8, 6, 0, 0,
                 4, 3, 5, 10, 8, 6, 5, 0, 0, 2, 1, 3, 8, 13, 11, 9, 0, 3, 1, 5, 4, 6, 11, 10, 8, 0,
                 1, 0, 3, 2, 7, 9, 8, 7,
-            ].iter()
+            ]
+            .iter()
             .map(|n| *n as f32)
             .collect(),
-        ).unwrap();
+        )
+        .unwrap();
 
         let (score_matrix, _) = build_score_matrix(INPUT1, INPUT2, &score_func, &gap_penalty);
 

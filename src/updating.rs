@@ -35,13 +35,21 @@ fn _update(anchor: &Anchor,
 
     let anchor_offset = (ctxt.offset() as usize) - ctxt.before().len();
 
+    // Determine the new location of the topic in the modified source
     let source_indices: Vec<usize> = alignment
         .into_iter()
+
+        // Look for all cells in the alignment where both sides contribute.
         .filter_map(|a| match a {
             AlignmentCell::Both { left: l, right: r } => Some((l, r)),
             _ => None,
         })
+
+        // Keep only the cells where the anchor index is in the topic (i.e. no
+        // in the before or after part of the context)
         .filter(|(a_idx, _)| index_in_topic(*a_idx + anchor_offset, &anchor))
+
+        // From those cells, extract the index in the modified source.
         .map(|(_, s_idx)| *s_idx)
         .collect();
 
@@ -50,6 +58,8 @@ fn _update(anchor: &Anchor,
         None => Err(UpdateError::InvalidAlignment)
     }?;
 
+    // Given the new topic offset and size, we can create a new context and
+    // anchor.
     let context = Context::from_buf(
         anchor_file_reader,
         *new_topic_offset as u64,
