@@ -65,14 +65,15 @@ fn build_score_matrix(
         for (col, b_char) in b.chars().enumerate() {
             let row = row + 1;
             let col = col + 1;
-            let match_score = score_func(a_char, b_char);
 
             let scores = [
                 (
                     Direction::Diag,
-                    score_matrix[(row - 1, col - 1)] + match_score,
+                    score_matrix[(row - 1, col - 1)] + score_func(a_char, b_char),
                 ),
-                (Direction::Up, score_matrix[(row - 1, col)] - gap_penalty(1)),
+                (
+                    Direction::Up, 
+                    score_matrix[(row - 1, col)] - gap_penalty(1)),
                 (
                     Direction::Left,
                     score_matrix[(row, col - 1)] - gap_penalty(1),
