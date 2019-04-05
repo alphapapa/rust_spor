@@ -22,6 +22,8 @@ use spor::diff::get_anchor_diff;
 use spor::repository::{AnchorId, Repository};
 use spor::updating::update;
 
+const VERSION: &'static str = env!("CARGO_PKG_VERSION");
+
 const USAGE: &'static str = "
 spor
 
@@ -33,9 +35,10 @@ Usage:
   spor diff <anchor-id>
   spor status
   spor update
+  spor (-h | --help | --version)
 
 Options:
-  -h --help     Show this screen.
+  -h, --help     Show this screen.
   --version     Show version.
 ";
 
@@ -54,6 +57,8 @@ struct Args {
     arg_context_width: u64,
     arg_id: String,
     arg_anchor_id: String,
+    flag_help: bool,
+    flag_version: bool,
 }
 
 type CommandResult = std::result::Result<(), i32>;
@@ -247,6 +252,7 @@ fn main() {
     simple_logger::init().unwrap();
 
     let args: Args = Docopt::new(USAGE)
+        .and_then(|dopt| dopt.version(Some(VERSION.to_string())).parse())
         .and_then(|d| d.deserialize())
         .unwrap_or_else(|e| e.exit());
 
