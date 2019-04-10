@@ -44,3 +44,20 @@ cargo run update
 ```
 
 We should see the anchor updated to match the new source.
+
+8. Repeat edit/update cycle through version 03 
+
+At this point, spor gets things a bit wrong. We no longer anchor the entire struct.
+
+9. Replace anchor with new one
+
+```
+rm .spor/<anchor file>
+echo "{}" | cargo run add 155 101 10 
+```
+
+10. Continue "editing"
+
+```
+cp history/04-anchor.rs anchor.rs
+```
