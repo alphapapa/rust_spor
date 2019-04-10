@@ -6,6 +6,7 @@ authors = ["Austin Bingham <austin.bingham@gmail.com>"]
 [dependencies]
 diff = "0.1.11"
 docopt = "1"
+encoding = "0.2"
 exit-code = "1.0.0"
 failure = "0.1.5"
 glob = "0.2"
