@@ -92,16 +92,22 @@ fn add_handler(args: &Args) -> CommandResult {
     })?;
 
     let encoding = "utf-8".to_string();
+    let full_path = std::path::Path::new(&args.arg_source_file)
+        .canonicalize()
+        .map_err(|e| {
+            println!("{:?}", e);
+            exit_code::OS_FILE_ERROR
+        })?;
 
     let anchor = Context::from_path(
-        &repo.root.join(std::path::Path::new(&args.arg_source_file)),
+        &full_path,
         args.arg_offset,
         args.arg_width,
         args.arg_context_width,
     )
     .and_then(|c| {
         Anchor::new(
-            &repo.root.join(std::path::Path::new(&args.arg_source_file)),
+            &full_path,
             c,
             metadata,
             encoding,
@@ -220,7 +226,7 @@ fn details_handler(args: &Args) -> CommandResult {
 
     let prefix_lines = |prefix, text: &str| {
         let lines = text.lines().map(|l| format!("{}{}", prefix, l));
-        Vec::from_iter(lines).join("\n") 
+        Vec::from_iter(lines).join("\n")
     };
 
     let before = prefix_lines("B> ", anchor.context().before());
@@ -243,7 +249,10 @@ width: {}
         anchor.encoding(),
         anchor.context().offset(),
         anchor.context().width(),
-        before, topic, after);
+        before,
+        topic,
+        after
+    );
 
     Ok(())
 }

@@ -3,10 +3,12 @@ extern crate tempdir;
 
 use std::path::PathBuf;
 use tempdir::TempDir;
+use std::fs::DirBuilder;
 
 pub struct World {
     start_dir: PathBuf,
     pub repo_dir: PathBuf,
+    pub external_dir: PathBuf,
     pub temp_dir: TempDir,
     pub executable: PathBuf,
 }
@@ -25,10 +27,17 @@ impl std::default::Default for World {
             .parent().expect("Unable to get parent of executable directory")
             .join("spor");
 
+        let repo_dir = dir.path().to_path_buf().join("internal");
+        let external_dir = dir.path().to_path_buf().join("external");
+        let builder = DirBuilder::new();
+        builder.create(&repo_dir).expect("Unable to create repo dir");
+        builder.create(&external_dir).expect("Unable to create external dir");
+
         let world = World {
             executable: executable,
             start_dir: cwd,
-            repo_dir: dir.path().to_path_buf(),
+            repo_dir: repo_dir,
+            external_dir: external_dir,
             temp_dir: dir,
         };
 

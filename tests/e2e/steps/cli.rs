@@ -26,6 +26,33 @@ steps!(World => {
                 .expect("unable to write code to test file");
         };
 
+        then regex r"^anchoring an external file fails$" () |world, _step| {
+            let source_file = world.external_dir.join("external.py");
+            let code = "# nothing";
+            fs::write(&source_file, code)
+                .expect("unable to write to test file");
+
+            let mut cmd = Command::new(&world.executable)
+                .arg("add")
+                .arg(source_file)
+                .arg("1")
+                .arg("1")
+                .arg("1")
+                .stdin(Stdio::piped())
+                .spawn()
+                .expect("failed to execute spor");
+
+            {
+                let stdin = cmd.stdin.as_mut()
+                    .expect("Failed to open stdin");
+                stdin.write_all("{meta: data}".as_bytes())
+                    .expect("Failed to write to stdin");
+            }
+
+            let exit_status = cmd.wait().expect("Command should fail.");
+            assert!(!exit_status.success());
+        };
+
         when regex r"^I modify (.+)$" (String) |world, filename, _step| {
             let source_file = world.repo_dir.join(filename);
             let code = fs::read_to_string(&source_file)

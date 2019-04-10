@@ -22,3 +22,7 @@ Feature: Command line interface
     When I create a new anchor for "source.py" at offset 19
     When I modify "source.py"
     Then the repository is invalid
+
+  Scenario: External files are rejected
+    Given I initialize a repository
+    Then anchoring an external file fails
