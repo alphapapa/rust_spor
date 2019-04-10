@@ -1,3 +1,4 @@
+extern crate encoding;
 extern crate failure;
 
 extern crate serde;

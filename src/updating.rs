@@ -1,7 +1,9 @@
+use encoding::all::UTF_8;
+use encoding::{decode, DecoderTrap};
+use encoding::label::encoding_from_whatwg_label;
 use std::error::Error;
 use std::fs::File;
 use std::io::{BufReader, Read, Seek, SeekFrom};
-
 
 use alignment::align::{Align, AlignmentCell};
 use anchor::{Anchor, Context};
@@ -18,19 +20,29 @@ pub fn update(anchor: &Anchor, align: &Align) -> Result<Anchor, UpdateError> {
 ///
 /// This takes in a reader of the anchored text, making it easier to test
 /// (since it can work without the file actually existing).
-fn _update(anchor: &Anchor, 
-           mut anchor_file_reader: impl Seek + Read,
-           align: &Align) -> Result<Anchor, UpdateError> {
+fn _update(
+    anchor: &Anchor,
+    mut anchor_file_reader: impl Seek + Read,
+    align: &Align,
+) -> Result<Anchor, UpdateError> {
     let ctxt = anchor.context();
-    let mut full_text = String::new();
+
+    let encoding = encoding_from_whatwg_label(anchor.encoding())
+        .ok_or(UpdateError::EncodingError("Invalid encoding name.".to_owned()))?;
+
+    // read the whole file
+    let mut buffer = Vec::new();
     anchor_file_reader.seek(SeekFrom::Start(0))?;
-    anchor_file_reader.read_to_string(&mut full_text)?;
+    anchor_file_reader.read_to_end(&mut buffer)?;
+    let full_text = decode(buffer.as_slice(), DecoderTrap::Strict, encoding)
+        .0
+        .map_err(|e| UpdateError::EncodingError(e.to_owned().to_string()))?;
 
     let (_, alignments) = align(&ctxt.full_text(), &full_text, &score_func, &gap_penalty);
 
     let alignment = match alignments.first() {
         Some(a) => Ok(a),
-        None => Err(UpdateError::NoAlignments)
+        None => Err(UpdateError::NoAlignments),
     }?;
 
     let anchor_offset = (ctxt.offset() as usize) - ctxt.before().len();
@@ -38,24 +50,21 @@ fn _update(anchor: &Anchor,
     // Determine the new location of the topic in the modified source
     let source_indices: Vec<usize> = alignment
         .into_iter()
-
         // Look for all cells in the alignment where both sides contribute.
         .filter_map(|a| match a {
             AlignmentCell::Both { left: l, right: r } => Some((l, r)),
             _ => None,
         })
-
         // Keep only the cells where the anchor index is in the topic (i.e. no
         // in the before or after part of the context)
         .filter(|(a_idx, _)| index_in_topic(*a_idx + anchor_offset, &anchor))
-
         // From those cells, extract the index in the modified source.
         .map(|(_, s_idx)| *s_idx)
         .collect();
 
     let new_topic_offset = match source_indices.first() {
         Some(index) => Ok(index),
-        None => Err(UpdateError::InvalidAlignment)
+        None => Err(UpdateError::InvalidAlignment),
     }?;
 
     // Given the new topic offset and size, we can create a new context and
@@ -64,7 +73,7 @@ fn _update(anchor: &Anchor,
         anchor_file_reader,
         *new_topic_offset as u64,
         source_indices.len() as u64,
-        anchor.context().width()
+        anchor.context().width(),
     )?;
 
     let updated = Anchor::new(
@@ -86,6 +95,8 @@ pub enum UpdateError {
     InvalidAlignment,
 
     Io(std::io::ErrorKind, String),
+
+    EncodingError(String)
 }
 
 impl From<std::io::Error> for UpdateError {
@@ -105,18 +116,17 @@ mod tests {
     extern crate ndarray;
     extern crate serde_yaml;
 
-    use super::*;
     use super::super::alignment::smith_waterman::align;
-    use std::path::PathBuf;
+    use super::*;
     use std::io::Cursor;
+    use std::path::PathBuf;
 
     #[test]
     fn successful_update() {
         let initial_text = "asdf";
         let final_text = "qwer\nasdf";
 
-        let context = Context::from_buf(
-            Cursor::new(initial_text.as_bytes()), 0, 4, 3).unwrap();
+        let context = Context::from_buf(Cursor::new(initial_text.as_bytes()), 0, 4, 3).unwrap();
 
         let metadata = serde_yaml::from_str("foo: bar").unwrap();
 
@@ -124,13 +134,12 @@ mod tests {
             &PathBuf::from("/foo/bar"),
             context,
             metadata,
-            "utf-8".to_string()).unwrap();
+            "utf-8".to_string(),
+        )
+        .unwrap();
 
-        let updated_anchor = _update(
-            &anchor,
-            Cursor::new(final_text.as_bytes()),
-            &align).unwrap();
-            
+        let updated_anchor = _update(&anchor, Cursor::new(final_text.as_bytes()), &align).unwrap();
+
         assert_eq!(updated_anchor.context().offset(), 5);
     }
 }
