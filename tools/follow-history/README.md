@@ -1,6 +1,5 @@
-This is a project for taking the history
-of changes for a file and seeing how an anchor
-moves with the changes.
+This is a project for taking the history of changes for a file and seeing how an
+anchor moves with the changes.
 
 The `get_history.py` script takes a thread of history for a file and puts each snapshot into a directory:
 
