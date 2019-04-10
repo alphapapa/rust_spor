@@ -12,7 +12,7 @@ cargo run init
 
 3. Create anchor
 ```
-echo "{'meta': 'data'}" | cargo run add anchor.rs 25 86 10
+echo "{meta: data}" | cargo run add anchor.rs 46 20 10
 ```
 
 Examine the anchor file.
@@ -45,19 +45,11 @@ cargo run update
 
 We should see the anchor updated to match the new source.
 
-8. Repeat edit/update cycle through version 03 
+8. Repeat edit/update cycle through version 05 
 
-At this point, spor gets things a bit wrong. We no longer anchor the entire struct.
+With this edit, we change the data type of the anchored thing, and we might
+expect spor to fall over. But it updates correctly!
 
-9. Replace anchor with new one
+10. Continue "editing" through to number 10
 
-```
-rm .spor/<anchor file>
-echo "{}" | cargo run add 155 101 10 
-```
-
-10. Continue "editing"
-
-```
-cp history/04-anchor.rs anchor.rs
-```
+Again, we see that the update at edit 10 works.
