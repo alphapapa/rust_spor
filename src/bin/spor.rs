@@ -19,9 +19,9 @@ use docopt::Docopt;
 use spor::alignment::smith_waterman::align;
 use spor::anchor::{Anchor, Context};
 use spor::diff::get_anchor_diff;
+use spor::file_io::read_file;
 use spor::repository::{AnchorId, Repository};
 use spor::updating::update;
-use spor::file_io::read_file;
 
 const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 
@@ -110,14 +110,7 @@ fn add_handler(args: &Args) -> CommandResult {
         args.arg_width,
         args.arg_context_width,
     )
-    .and_then(|c| {
-        Anchor::new(
-            &full_path,
-            c,
-            metadata,
-            encoding,
-        )
-    })
+    .and_then(|c| Anchor::new(&full_path, c, metadata, encoding))
     .map_err(|e| {
         println!("{:?}", e);
         exit_code::DATA_ERROR
