@@ -21,6 +21,7 @@ use spor::anchor::{Anchor, Context};
 use spor::diff::get_anchor_diff;
 use spor::repository::{AnchorId, Repository};
 use spor::updating::update;
+use spor::file_io::read_file;
 
 const VERSION: &'static str = env!("CARGO_PKG_VERSION");
 
@@ -98,9 +99,13 @@ fn add_handler(args: &Args) -> CommandResult {
             println!("{:?}", e);
             exit_code::OS_FILE_ERROR
         })?;
+    let full_text = read_file(&full_path, &encoding).map_err(|e| {
+        println!("{:?}", e);
+        exit_code::DATA_ERROR
+    })?;
 
-    let anchor = Context::from_path(
-        &full_path,
+    let anchor = Context::new(
+        &full_text,
         args.arg_offset,
         args.arg_width,
         args.arg_context_width,

@@ -1,19 +1,14 @@
-use encoding::all::UTF_8;
-use encoding::{decode, DecoderTrap};
-use encoding::label::encoding_from_whatwg_label;
 use std::error::Error;
-use std::fs::File;
-use std::io::{BufReader, Read, Seek, SeekFrom};
 
 use alignment::align::{Align, AlignmentCell};
 use anchor::{Anchor, Context};
+use file_io::read_file;
 use scoring::{gap_penalty, score_func};
 
 /// Update an anchor based on the current contents of its source file.
 pub fn update(anchor: &Anchor, align: &Align) -> Result<Anchor, UpdateError> {
-    let f = File::open(anchor.file_path())?;
-    let handle = BufReader::new(f);
-    _update(anchor, handle, align)
+    let contents = read_file(anchor.file_path(), anchor.encoding())?;
+    _update(anchor, &contents, align)
 }
 
 /// The main update implementation.
@@ -22,21 +17,10 @@ pub fn update(anchor: &Anchor, align: &Align) -> Result<Anchor, UpdateError> {
 /// (since it can work without the file actually existing).
 fn _update(
     anchor: &Anchor,
-    mut anchor_file_reader: impl Seek + Read,
+    full_text: &str,
     align: &Align,
 ) -> Result<Anchor, UpdateError> {
     let ctxt = anchor.context();
-
-    let encoding = encoding_from_whatwg_label(anchor.encoding())
-        .ok_or(UpdateError::EncodingError("Invalid encoding name.".to_owned()))?;
-
-    // read the whole file
-    let mut buffer = Vec::new();
-    anchor_file_reader.seek(SeekFrom::Start(0))?;
-    anchor_file_reader.read_to_end(&mut buffer)?;
-    let full_text = decode(buffer.as_slice(), DecoderTrap::Strict, encoding)
-        .0
-        .map_err(|e| UpdateError::EncodingError(e.to_owned().to_string()))?;
 
     let (_, alignments) = align(&ctxt.full_text(), &full_text, &score_func, &gap_penalty);
 
@@ -69,8 +53,8 @@ fn _update(
 
     // Given the new topic offset and size, we can create a new context and
     // anchor.
-    let context = Context::from_buf(
-        anchor_file_reader,
+    let context = Context::new(
+        full_text,
         *new_topic_offset as u64,
         source_indices.len() as u64,
         anchor.context().width(),
@@ -118,7 +102,6 @@ mod tests {
 
     use super::super::alignment::smith_waterman::align;
     use super::*;
-    use std::io::Cursor;
     use std::path::PathBuf;
 
     #[test]
@@ -126,7 +109,7 @@ mod tests {
         let initial_text = "asdf";
         let final_text = "qwer\nasdf";
 
-        let context = Context::from_buf(Cursor::new(initial_text.as_bytes()), 0, 4, 3).unwrap();
+        let context = Context::new(initial_text, 0, 4, 3).unwrap();
 
         let metadata = serde_yaml::from_str("foo: bar").unwrap();
 
@@ -138,7 +121,7 @@ mod tests {
         )
         .unwrap();
 
-        let updated_anchor = _update(&anchor, Cursor::new(final_text.as_bytes()), &align).unwrap();
+        let updated_anchor = _update(&anchor, final_text, &align).unwrap();
 
         assert_eq!(updated_anchor.context().offset(), 5);
     }

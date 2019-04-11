@@ -1,6 +1,5 @@
 use std::cmp::max;
-use std::fs::File;
-use std::io::{BufReader, Error, ErrorKind, Read, Result, Seek, SeekFrom};
+use std::io::{Error, ErrorKind, Result};
 use std::path::{Path, PathBuf};
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -13,57 +12,38 @@ pub struct Context {
 }
 
 impl Context {
-    pub fn from_path(
-        path: &Path,
-        offset: u64,
-        width: u64,
-        context_width: u64
-    ) -> Result<Context> {
-        let f = File::open(path)?;
-        let handle = BufReader::new(f);
-        Context::from_buf(handle, offset, width, context_width)
-    }
-
-    pub fn from_buf(
-        mut handle: impl Seek + Read,
-        offset: u64,
-        width: u64,
-        context_width: u64,
-    ) -> Result<Context> {
-        // read topic
-        handle.seek(SeekFrom::Start(offset))?;
-
-        let mut topic = String::new();
-        {
-            // let reference = handle.by_ref();
-            handle.by_ref().take(width).read_to_string(&mut topic)?;
-        }
+    pub fn new(text: &str, offset: u64, width: u64, context_width: u64) -> Result<Context> {
+        let topic: String = text
+            .chars()
+            .skip(offset as usize)
+            .take(width as usize)
+            .collect();
 
         if topic.len() < width as usize {
             return Err(Error::new(ErrorKind::InvalidInput, "Unable to read topic"));
         }
 
         // read before
-        let before_offset = 
-            if context_width <= offset {
-                max(0, offset - context_width)
-            }
-            else {
-                0
-            };
+        let before_offset = if context_width <= offset {
+            max(0, offset - context_width)
+        } else {
+            0
+        };
         let before_width = offset - before_offset;
-        handle.seek(SeekFrom::Start(before_offset))?;
-        let mut before = String::new();
-        handle.by_ref().take(before_width).read_to_string(&mut before)?;
-        if before.len() < before_width as usize {
-            return Err(Error::new(ErrorKind::InvalidInput, "Unable to read before"));
-        }
+        let before: String = text
+            .chars()
+            .skip(before_offset as usize)
+            .take(before_width as usize)
+            .collect();
 
         // read after
         let after_offset = offset + width;
-        handle.seek(SeekFrom::Start(after_offset))?;
-        let mut after = String::new();
-        handle.take(context_width).read_to_string(&mut after)?;
+        let after_width = after_offset + context_width;
+        let after: String = text
+            .chars()
+            .skip(after_offset as usize)
+            .take(after_width as usize)
+            .collect();
 
         let context = Context {
             before: before,
@@ -119,7 +99,8 @@ impl Anchor {
         if !file_path.is_absolute() {
             return Err(Error::new(
                 ErrorKind::InvalidInput,
-                "Anchor file path's must be absolute"))
+                "Anchor file path's must be absolute",
+            ));
         }
 
         let anchor = Anchor {
@@ -143,7 +124,7 @@ impl Anchor {
     pub fn context(&self) -> &Context {
         return &self.context;
     }
-    
+
     pub fn metadata(&self) -> &serde_yaml::Value {
         return &self.metadata;
     }
@@ -155,14 +136,13 @@ mod tests {
     extern crate serde_yaml;
 
     use super::*;
-    use std::io::Cursor;
 
     mod context {
         use super::*;
 
         #[test]
         fn construct_context_with_topic_at_front_of_file() {
-            Context::from_buf(Cursor::new("text".as_bytes()), 0, 4, 3).unwrap();
+            Context::new("text", 0, 4, 3).unwrap();
         }
     }
 }
