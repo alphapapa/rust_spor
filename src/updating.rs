@@ -55,8 +55,8 @@ fn _update(
     // anchor.
     let context = Context::new(
         full_text,
-        *new_topic_offset as u64,
-        source_indices.len() as u64,
+        *new_topic_offset,
+        source_indices.len(),
         anchor.context().width(),
     )?;
 

@@ -9,7 +9,7 @@ pub fn get_anchor_diff(anchor: &Anchor) -> Result<(bool, Vec<String>)> {
     let context = Context::new(
         &full_text,
         anchor.context().offset(),
-        anchor.context().topic().len() as u64,
+        anchor.context().topic().len(),
         anchor.context().width())?;
 
     let new_anchor = Anchor::new(

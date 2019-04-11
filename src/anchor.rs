@@ -5,21 +5,21 @@ use std::path::{Path, PathBuf};
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Context {
     before: String,
-    offset: u64,
+    offset: usize,
     topic: String,
     after: String,
-    width: u64,
+    width: usize,
 }
 
 impl Context {
-    pub fn new(text: &str, offset: u64, width: u64, context_width: u64) -> Result<Context> {
+    pub fn new(text: &str, offset: usize, width: usize, context_width: usize) -> Result<Context> {
         let topic: String = text
             .chars()
-            .skip(offset as usize)
-            .take(width as usize)
+            .skip(offset)
+            .take(width)
             .collect();
 
-        if topic.len() < width as usize {
+        if topic.len() < width {
             return Err(Error::new(ErrorKind::InvalidInput, "Unable to read topic"));
         }
 
@@ -32,8 +32,8 @@ impl Context {
         let before_width = offset - before_offset;
         let before: String = text
             .chars()
-            .skip(before_offset as usize)
-            .take(before_width as usize)
+            .skip(before_offset)
+            .take(before_width)
             .collect();
 
         // read after
@@ -41,8 +41,8 @@ impl Context {
         let after_width = after_offset + context_width;
         let after: String = text
             .chars()
-            .skip(after_offset as usize)
-            .take(after_width as usize)
+            .skip(after_offset)
+            .take(after_width)
             .collect();
 
         let context = Context {
@@ -60,7 +60,7 @@ impl Context {
         &self.before
     }
 
-    pub fn offset(&self) -> u64 {
+    pub fn offset(&self) -> usize {
         self.offset
     }
 
@@ -72,7 +72,7 @@ impl Context {
         &self.after
     }
 
-    pub fn width(&self) -> u64 {
+    pub fn width(&self) -> usize {
         self.width
     }
 
